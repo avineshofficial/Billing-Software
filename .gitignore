@@ -1,0 +1,38 @@
+# === OS Files ===
+.DS_Store
+Thumbs.db
+
+# === Backend (Python/FastAPI) ===
+backend/venv/
+backend/.venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+
+# --- Backend Data & Uploads ---
+# We ignore the actual data files so your GitHub stays clean
+# and doesn't hit the 40MB limit.
+backend/data/sales_v*.json
+backend/data/sales.json
+backend/static/uploads/*
+
+# Keep the directory structure but ignore the files inside
+!backend/static/uploads/.gitkeep
+!backend/data/products.json
+
+# === Frontend (React/Vite) ===
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/.env
+frontend/.env.*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# === Editor Settings ===
+.vscode/
+.idea/
+*.swp
+*.swo
