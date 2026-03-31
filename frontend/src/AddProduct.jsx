@@ -10,7 +10,7 @@ function AddProduct() {
     name: '',
     category: '',
     price: '',
-    gst_percentage: '5', // Default starting value
+    gst_percentage: '0', // Default starting value
     stock: ''
   });
   
@@ -113,10 +113,11 @@ function AddProduct() {
             onChange={handleChange} 
             className="form-select"
           >
+            <option value="0">0% GST</option>
             <option value="5">5% GST</option>
             <option value="12">12% GST</option>
             <option value="18">18% GST</option>
-            <option value="28">28% GST</option>
+            
           </select>
         </div>
 

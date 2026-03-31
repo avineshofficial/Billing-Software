@@ -1,11 +1,11 @@
 [
     {
-        "id": "0fdc220f-a0d8-4dd0-b9f4-99cbf916b883",
+        "id": "f2b9a63c-2eff-4249-bc09-166d22b89757",
         "name": "vanilla",
         "category": "icecream",
         "price": 100.0,
-        "gst_percentage": 5,
-        "stock": 9,
-        "image_url": "/static/uploads/49b4cc72-3cc2-4654-af2e-4ff799335035.jpg"
+        "gst_percentage": 0,
+        "stock": 10,
+        "image_url": "/static/uploads/5a420287-4967-4c30-b52d-d8586233df00.jpg"
     }
 ]

@@ -102,6 +102,7 @@ function EditProduct() {
         <div className="form-group">
           <label>GST (%)</label>
           <select value={form.gst_percentage} onChange={e => setForm({...form, gst_percentage: e.target.value})}>
+            <option value="0">0%</option>
             <option value="5">5%</option>
             <option value="12">12%</option>
             <option value="18">18%</option>
