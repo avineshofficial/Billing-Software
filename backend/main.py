@@ -79,14 +79,15 @@ class CartItem(BaseModel):
     price: float
     quantity: int
     gst_percentage: Optional[int] = 0
+    mrp: Optional[float] = 0.0  # Added this to match what React sends
 
 class SaleRequest(BaseModel):
     items: List[CartItem]
     total_amount: float
-    subtotal: float
-    tax: float
-    discount: float
-    savings: float # Ensure this is included
+    subtotal: Optional[float] = 0.0  # Optional prevents 422 errors
+    tax: Optional[float] = 0.0       # Optional prevents 422 errors
+    discount: Optional[float] = 0.0  # Optional prevents 422 errors
+    savings: Optional[float] = 0.0   # Optional prevents 422 errors
 
 # --- 5. ENDPOINTS ---
 
