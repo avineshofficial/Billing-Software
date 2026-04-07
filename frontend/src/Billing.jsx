@@ -9,16 +9,18 @@ const API_URL = 'http://127.0.0.1:8000/api';
 function Billing() {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [discount, setDiscount] = useState(""); 
+  const [discountPercent, setDiscountPercent] = useState(""); 
+  
+  // 1. REF FOR PRINTER - Used to target the receipt
   const printRef = useRef();
 
-  // 1. PERSISTENCE: Load cart from browser memory
+  // 2. PERSISTENCE: Load cart from browser memory
   const [cart, setCart] = useState(() => {
     const saved = localStorage.getItem('hashi_pos_cart');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // 2. PERSISTENCE: Save cart to memory whenever it changes
+  // 3. PERSISTENCE: Save cart to memory whenever it changes
   useEffect(() => {
     localStorage.setItem('hashi_pos_cart', JSON.stringify(cart));
   }, [cart]);
@@ -35,10 +37,10 @@ function Billing() {
   const addToCart = (p) => {
     const ex = cart.find(i => i.id === p.id);
     if (ex) {
-      if (ex.quantity >= p.stock) return alert("Out of stock!");
+      if (ex.quantity >= p.stock) return alert("Insufficient stock in inventory!");
       setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      if (p.stock < 1) return alert("Out of stock!");
+      if (p.stock < 1) return alert("Product is out of stock!");
       setCart([...cart, { ...p, quantity: 1 }]);
     }
   };
@@ -57,7 +59,7 @@ function Billing() {
 
   const removeFromCart = (id) => setCart(cart.filter(i => i.id !== id));
 
-  // --- 3. PROFESSIONAL CALCULATIONS ---
+  // --- 4. CALCULATIONS ---
   const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
   
   const totalTax = cart.reduce((sum, i) => {
@@ -65,36 +67,46 @@ function Billing() {
     return sum + ((i.price * taxRate / 100) * i.quantity);
   }, 0);
 
-  // Calculate total value at MRP to show savings
-  const totalMrpValue = cart.reduce((sum, i) => sum + (i.mrp * i.quantity), 0);
+  const totalMrpValue = cart.reduce((sum, i) => sum + ((i.mrp || i.price) * i.quantity), 0);
 
-  const currentDiscount = parseFloat(discount) || 0;
   const preDiscountTotal = subtotal + totalTax;
-  const grandTotal = Math.max(0, preDiscountTotal - currentDiscount);
-  const totalSavings = (totalMrpValue - subtotal) + currentDiscount;
+  const discPercentValue = parseFloat(discountPercent) || 0;
+  const discountAmount = preDiscountTotal * (discPercentValue / 100);
+  
+  const grandTotal = Math.max(0, preDiscountTotal - discountAmount);
+  const totalSavings = (totalMrpValue - subtotal) + discountAmount;
 
-  const handlePrint = useReactToPrint({ content: () => printRef.current });
+  // --- 5. PRINT HOOK CONFIGURATION (FIXED) ---
+  const handlePrint = useReactToPrint({
+    contentRef: printRef, // Fixed property for latest react-to-print
+    onAfterPrint: () => {
+        // Reset POS state after successful print
+        setCart([]);
+        setDiscountPercent("");
+        localStorage.removeItem('hashi_pos_cart');
+        fetchProducts(); // Refresh stock numbers from backend
+    }
+  });
 
   const checkout = async () => {
     if (cart.length === 0) return;
     try {
+      // Step A: Save sale record to Database
       await axios.post(`${API_URL}/sales`, { 
         items: cart, 
         total_amount: grandTotal, 
         subtotal, 
         tax: totalTax,
-        discount: currentDiscount,
+        discount: discountAmount,
         savings: totalSavings 
       });
       
-      handlePrint(); // Print Receipt
+      // Step B: Trigger the Print Dialog
+      handlePrint(); 
       
-      // Reset POS
-      setCart([]);
-      setDiscount(0);
-      localStorage.removeItem('hashi_pos_cart');
-      fetchProducts(); // Refresh stock
-    } catch (e) { alert("Checkout failed"); }
+    } catch (e) { 
+        alert("Checkout failed. Check if Backend server is running."); 
+    }
   };
 
   const filteredProducts = products.filter(p => 
@@ -104,7 +116,7 @@ function Billing() {
 
   return (
     <div className="billing-layout">
-      {/* LEFT: Product Grid */}
+      {/* LEFT: Product Selection Area */}
       <div className="product-grid-container">
         <div className="search-container">
           <input 
@@ -120,7 +132,7 @@ function Billing() {
                <span className="p-code">{p.product_code || 'N/A'}</span>
                <h4>{p.name}</h4>
                <div className="p-prices">
-                  <span className="mrp-striked">₹{p.mrp}</span>
+                  <span className="mrp-striked">₹{p.mrp || p.price}</span>
                   <span className="sale-price">₹{p.price}</span>
                </div>
                <small>Tax: {p.gst_percentage}% | Stock: {p.stock}</small>
@@ -129,7 +141,7 @@ function Billing() {
         </div>
       </div>
 
-      {/* RIGHT: Cart Panel */}
+      {/* RIGHT: Cart & Summary Area */}
       <div className="cart-panel">
         <div className="cart-header">
           <h3>Current Order</h3>
@@ -160,28 +172,18 @@ function Billing() {
           <div className="summary-row"><span>GST Tax</span><span>₹{totalTax.toFixed(2)}</span></div>
           
           <div className="summary-row discount-row">
-  <span>Manual Discount (₹)</span>
-  <input 
-    type="number" 
-    className="discount-input" 
-    value={discount} 
-    placeholder="0" // Shows 0 only as a hint
-    min="0"         // Prevents clicking down into negatives
-    onKeyDown={(e) => {
-      // Prevents typing '-', 'e' (scientific notation), and '+'
-      if (["-", "+", "e", "E"].includes(e.key)) {
-        e.preventDefault();
-      }
-    }}
-    onChange={(e) => {
-      const val = e.target.value;
-      // Allows empty string (clearing the box) or positive numbers only
-      if (val === "" || parseFloat(val) >= 0) {
-        setDiscount(val);
-      }
-    }} 
-  />
-</div>
+            <span>Discount (%)</span>
+            <input 
+                type="number" 
+                className="discount-input" 
+                value={discountPercent} 
+                placeholder="0"
+                min="0"
+                max="100"
+                onKeyDown={(e) => ["-", "+", "e", "E"].includes(e.key) && e.preventDefault()}
+                onChange={(e) => setDiscountPercent(e.target.value)} 
+            />
+          </div>
 
           <div className="summary-row grand-total">
             <span>Grand Total</span>
@@ -189,7 +191,7 @@ function Billing() {
           </div>
           
           <div className="savings-highlight">
-            You are saving ₹{totalSavings.toFixed(2)} on this bill!
+            Total Savings: ₹{totalSavings.toFixed(2)}
           </div>
 
           <button className="pay-button" onClick={checkout} disabled={cart.length === 0}>
@@ -198,17 +200,22 @@ function Billing() {
         </div>
       </div>
 
-      {/* Hidden Receipt Component */}
-      <div style={{ display: 'none' }}>
-        <InvoiceTicket 
-          ref={printRef} 
-          cart={cart} 
-          subtotal={subtotal} 
-          tax={totalTax} 
-          discount={currentDiscount} 
-          total={grandTotal}
-          savings={totalSavings} 
-        />
+      {/* 
+        6. PRINT FIX: Wrapping the InvoiceTicket in a div that holds the Ref.
+        We hide it from the screen view using 'display: none' but it stays in the DOM 
+        so react-to-print can capture it correctly.
+      */}
+      <div style={{ display: "none" }}>
+        <div ref={printRef}>
+          <InvoiceTicket 
+            cart={cart} 
+            subtotal={subtotal} 
+            tax={totalTax} 
+            discount={discountAmount} 
+            total={grandTotal}
+            savings={totalSavings} 
+          />
+        </div>
       </div>
     </div>
   );

@@ -3,27 +3,30 @@ import React, { forwardRef } from 'react';
 const InvoiceTicket = forwardRef(({ cart, subtotal, tax, discount, total, savings }, ref) => {
   return (
     <div ref={ref} style={{ 
-      padding: '15px', 
+      padding: '10px', 
       width: '280px', 
       fontFamily: "'Courier New', Courier, monospace", 
       color: '#000',
       backgroundColor: '#fff',
-      lineHeight: '1.4'
+      lineHeight: '1.2'
     }}>
-      <h2 style={{ textAlign: 'center', margin: '0', fontSize: '18px' }}>HASHI ICE SPOT</h2>
-      <p style={{ textAlign: 'center', fontSize: '11px', margin: '2px 0' }}>TAX INVOICE</p>
+      {/* HEADER */}
+      <h2 style={{ textAlign: 'center', margin: '0', fontSize: '20px', fontWeight: 'bold' }}>HASHI ICE SPOT</h2>
+      <p style={{ textAlign: 'center', margin: '2px 0 10px 0', fontSize: '12px' }}>TAX INVOICE</p>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', margin: '10px 0' }}>
-         <span>{new Date().toLocaleDateString()}</span>
-         <span>{new Date().toLocaleTimeString()}</span>
+      {/* DATE & TIME */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '5px' }}>
+         <span>Date: {new Date().toLocaleDateString()}</span>
+         <span>Time: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
       
-      <div style={{ borderBottom: '1px dashed #000', marginBottom: '8px' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', marginBottom: '5px' }}></div>
       
-      <table style={{ width: '100%', fontSize: '10px', borderCollapse: 'collapse' }}>
+      {/* TABLE HEADER */}
+      <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #000' }}>
-            <th align="left">ITEM</th>
+            <th align="left" style={{ paddingBottom: '5px' }}>ITEM</th>
             <th align="right">MRP</th>
             <th align="right">PRICE</th>
             <th align="center">QTY</th>
@@ -33,8 +36,10 @@ const InvoiceTicket = forwardRef(({ cart, subtotal, tax, discount, total, saving
         <tbody>
           {cart.map((item, index) => (
             <tr key={index}>
-              <td style={{ padding: '4px 0' }}>{item.name.toUpperCase()}</td>
-              <td align="right">{item.mrp}</td>
+              <td style={{ padding: '5px 0', maxWidth: '80px', wordBreak: 'break-all' }}>
+                {item.name.toUpperCase()}
+              </td>
+              <td align="right">{item.mrp || item.price}</td>
               <td align="right">{item.price}</td>
               <td align="center">{item.quantity}</td>
               <td align="right">{(item.price * item.quantity).toFixed(2)}</td>
@@ -43,39 +48,43 @@ const InvoiceTicket = forwardRef(({ cart, subtotal, tax, discount, total, saving
         </tbody>
       </table>
 
-      <div style={{ borderBottom: '1px dashed #000', margin: '8px 0' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
       
-      <div style={{ fontSize: '11px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Subtotal:</span><span>₹{subtotal.toFixed(2)}</span>
+      {/* SUMMARY */}
+      <div style={{ fontSize: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+          <span>Subtotal:</span>
+          <span>₹{subtotal.toFixed(2)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>GST Tax:</span><span>₹{tax.toFixed(2)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+          <span>GST Tax (18%):</span>
+          <span>₹{tax.toFixed(2)}</span>
         </div>
+        
         {discount > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Discount:</span><span>- ₹{discount.toFixed(2)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+            <span>Discount:</span>
+            <span>- ₹{discount.toFixed(2)}</span>
           </div>
         )}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          fontSize: '15px', 
-          fontWeight: 'bold', 
-          marginTop: '5px', 
-          borderTop: '1px solid #000', 
-          paddingTop: '5px' 
-        }}>
-          <span>NET PAYABLE:</span><span>₹{total.toFixed(2)}</span>
+        
+        <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '15px', fontWeight: 'bold' }}>
+          <span>NET PAYABLE:</span>
+          <span>₹{total.toFixed(2)}</span>
         </div>
       </div>
 
-      {/* SIMPLIFIED SAVINGS LINE */}
-      <div style={{ marginTop: '15px', textAlign: 'center', fontSize: '12px', fontWeight: 'bold' }}>
+      <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }}></div>
+
+      {/* SAVINGS SECTION */}
+      <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold' }}>
         You Have Saved ₹{savings.toFixed(2)}
       </div>
 
-      <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '11px', fontWeight: 'bold' }}>
+      {/* FOOTER */}
+      <p style={{ textAlign: 'center', marginTop: '25px', fontSize: '11px', fontWeight: 'bold' }}>
         THANK YOU! VISIT AGAIN
       </p>
     </div>

@@ -4,10 +4,11 @@
         "product_code": "hi",
         "name": "vanilla",
         "category": "icecream",
-        "price": 100.0,
-        "mrp": 120.0,
+        "price": 260.0,
+        "mrp": 297.0,
         "gst_percentage": 0,
-        "stock": 9
+        "stock": 17,
+        "image_url": ""
     },
     {
         "id": "86341f0a-fb45-4575-86a4-641f567b3171",
@@ -17,6 +18,6 @@
         "price": 100.0,
         "mrp": 150.0,
         "gst_percentage": 0,
-        "stock": 9
+        "stock": 8
     }
 ]

@@ -16,6 +16,7 @@ backend/data/sales_v*.json
 backend/data/sales.json
 backend/data/products.json
 backend/static/uploads/*
+backend/data/products.json
 
 # Keep the directory structure but ignore the files inside
 !backend/static/uploads/.gitkeep
