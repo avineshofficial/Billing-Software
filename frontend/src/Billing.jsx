@@ -9,54 +9,37 @@ const API_URL = 'http://127.0.0.1:8000/api';
 function Billing() {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // --- 1. PERSISTENCE LOGIC: Load cart from LocalStorage on startup ---
-  const [cart, setCart] = useState(() => {
-    const savedCart = localStorage.getItem('hashi_pos_cart');
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
-
+  const [discount, setDiscount] = useState(""); 
   const printRef = useRef();
 
-  // --- 2. PERSISTENCE LOGIC: Save cart to LocalStorage whenever it changes ---
+  // 1. PERSISTENCE: Load cart from browser memory
+  const [cart, setCart] = useState(() => {
+    const saved = localStorage.getItem('hashi_pos_cart');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // 2. PERSISTENCE: Save cart to memory whenever it changes
   useEffect(() => {
     localStorage.setItem('hashi_pos_cart', JSON.stringify(cart));
   }, [cart]);
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+  useEffect(() => { fetchProducts(); }, []);
 
   const fetchProducts = async () => {
     try {
       const res = await axios.get(`${API_URL}/products`);
       setProducts(res.data);
-    } catch (error) { console.error(error); }
+    } catch (e) { console.error("Fetch error", e); }
   };
 
-  // Find and replace this function in Billing.jsx
-const getImageUrl = (path) => {
-  if (!path) return "https://via.placeholder.com/150?text=No+Image";
-  // If it's a local path like /static/uploads/..., add the backend URL
-  if (path.startsWith('/static')) {
-    return `http://localhost:8000${path}`;
-  }
-  return path; // Fallback for old Drive links
-};
-
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const addToCart = (product) => {
-    const existing = cart.find(item => item.id === product.id);
-    if (existing) {
-      if (existing.quantity >= product.stock) return alert("Out of stock!");
-      setCart(cart.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i));
+  const addToCart = (p) => {
+    const ex = cart.find(i => i.id === p.id);
+    if (ex) {
+      if (ex.quantity >= p.stock) return alert("Out of stock!");
+      setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      if (product.stock < 1) return alert("Out of stock!");
-      setCart([...cart, { ...product, quantity: 1 }]);
+      if (p.stock < 1) return alert("Out of stock!");
+      setCart([...cart, { ...p, quantity: 1 }]);
     }
   };
 
@@ -64,97 +47,89 @@ const getImageUrl = (path) => {
     setCart(cart.map(item => {
       if (item.id === id) {
         const newQty = item.quantity + delta;
-        const stock = products.find(p => p.id === id)?.stock || 999;
-        if (newQty > stock) { alert("Insufficient stock!"); return item; }
+        const stockLimit = products.find(p => p.id === id)?.stock || 999;
+        if (newQty > stockLimit) { alert("Stock limit reached!"); return item; }
         return newQty > 0 ? { ...item, quantity: newQty } : item;
       }
       return item;
     }));
   };
 
-  const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
+  const removeFromCart = (id) => setCart(cart.filter(i => i.id !== id));
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const totalTax = cart.reduce((sum, item) => {
-    const taxRate = item.gst_percentage || 0;
-    return sum + ((item.price * taxRate / 100) * item.quantity);
+  // --- 3. PROFESSIONAL CALCULATIONS ---
+  const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+  
+  const totalTax = cart.reduce((sum, i) => {
+    const taxRate = i.gst_percentage || 0;
+    return sum + ((i.price * taxRate / 100) * i.quantity);
   }, 0);
-  const grandTotal = subtotal + totalTax;
+
+  // Calculate total value at MRP to show savings
+  const totalMrpValue = cart.reduce((sum, i) => sum + (i.mrp * i.quantity), 0);
+
+  const currentDiscount = parseFloat(discount) || 0;
+  const preDiscountTotal = subtotal + totalTax;
+  const grandTotal = Math.max(0, preDiscountTotal - currentDiscount);
+  const totalSavings = (totalMrpValue - subtotal) + currentDiscount;
 
   const handlePrint = useReactToPrint({ content: () => printRef.current });
 
   const checkout = async () => {
-  // 1. Strict Validation: Stop if cart is empty
-  if (cart.length === 0) {
-    alert("Cannot generate an empty bill. Please add products first.");
-    return;
-  }
+    if (cart.length === 0) return;
+    try {
+      await axios.post(`${API_URL}/sales`, { 
+        items: cart, 
+        total_amount: grandTotal, 
+        subtotal, 
+        tax: totalTax,
+        discount: currentDiscount,
+        savings: totalSavings 
+      });
+      
+      handlePrint(); // Print Receipt
+      
+      // Reset POS
+      setCart([]);
+      setDiscount(0);
+      localStorage.removeItem('hashi_pos_cart');
+      fetchProducts(); // Refresh stock
+    } catch (e) { alert("Checkout failed"); }
+  };
 
-  try {
-    // 2. Send Data to Backend
-    await axios.post(`${API_URL}/sales`, { 
-      items: cart, 
-      total_amount: grandTotal,
-      subtotal: subtotal, 
-      tax: totalTax 
-    });
-
-    // 3. Trigger Print
-    handlePrint();
-
-    // 4. Clear Cart and Local Storage
-    setCart([]);
-    localStorage.removeItem('hashi_pos_cart');
-
-    // 5. CRITICAL: Refresh product list to show reduced stock on screen
-    fetchProducts(); 
-
-    alert("Sale Completed Successfully!");
-  } catch (error) {
-    console.error("Checkout error:", error);
-    alert("Checkout failed. Check if backend is running.");
-  }
-};
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (p.product_code && p.product_code.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="billing-layout">
+      {/* LEFT: Product Grid */}
       <div className="product-grid-container">
         <div className="search-container">
           <input 
-            type="text" 
-            className="search-input"
-            placeholder="Search items or categories..." 
+            className="search-input" 
+            placeholder="Search by name or product code..." 
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)} 
           />
-          {searchTerm && <button className="clear-search" onClick={() => setSearchTerm("")}>&times;</button>}
         </div>
-
         <div className="product-grid">
           {filteredProducts.map((p) => (
             <div key={p.id} className="product-card" onClick={() => addToCart(p)}>
-  <div className="image-container">
-    {/* Try to load the image. If it fails, the onError will hide it and show the initials */}
-    {p.image_url ? (
-      <img src={getImageUrl(p.image_url)} className="product-image" alt={p.name} />
-    ) : null}
-    
-    {/* This colored box only shows if the image fails or is missing */}
-    <div className="fallback-box" style={{ display: p.image_url ? 'none' : 'flex' }}>
-      {p.name.charAt(0).toUpperCase()}
-    </div>
-
-    <span className="category-tag">{p.category}</span>
-  </div>
-  <h4>{p.name}</h4>
-  <p>₹{p.price.toFixed(2)} <small>+ {p.gst_percentage}% GST</small></p>
-  <small>Stock: {p.stock}</small>
-</div>
+               <span className="p-code">{p.product_code || 'N/A'}</span>
+               <h4>{p.name}</h4>
+               <div className="p-prices">
+                  <span className="mrp-striked">₹{p.mrp}</span>
+                  <span className="sale-price">₹{p.price}</span>
+               </div>
+               <small>Tax: {p.gst_percentage}% | Stock: {p.stock}</small>
+            </div>
           ))}
-          {filteredProducts.length === 0 && <div className="no-results">No items found</div>}
         </div>
       </div>
 
+      {/* RIGHT: Cart Panel */}
       <div className="cart-panel">
         <div className="cart-header">
           <h3>Current Order</h3>
@@ -166,12 +141,14 @@ const getImageUrl = (path) => {
             <div key={item.id} className="cart-item">
               <div className="cart-item-info">
                 <strong>{item.name}</strong>
-                <div className="tax-info">₹{item.price} | GST: {item.gst_percentage}%</div>
+                <div className="tax-info">MRP: ₹{item.mrp} | Price: ₹{item.price}</div>
               </div>
               <div className="qty-controls">
-                <button className="qty-btn" onClick={() => updateQty(item.id, -1)}>−</button>
-                <span className="qty-val">{item.quantity}</span>
-                <button className="qty-btn" onClick={() => updateQty(item.id, 1)}>+</button>
+                <div className="qty-input-group">
+                  <button className="qty-btn" onClick={() => updateQty(item.id, -1)}>−</button>
+                  <span className="qty-val">{item.quantity}</span>
+                  <button className="qty-btn" onClick={() => updateQty(item.id, 1)}>+</button>
+                </div>
                 <button className="remove-btn" onClick={() => removeFromCart(item.id)}>&times;</button>
               </div>
             </div>
@@ -180,25 +157,58 @@ const getImageUrl = (path) => {
 
         <div className="billing-summary">
           <div className="summary-row"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-          <div className="summary-row"><span>Total GST</span><span>₹{totalTax.toFixed(2)}</span></div>
-          <div className="summary-row grand-total"><span>Grand Total</span><span>₹{grandTotal.toFixed(2)}</span></div>
-          <button 
-  className="pay-button" 
-  onClick={checkout} 
-  // This physically disables the button so no click event can trigger
-  disabled={cart.length === 0} 
-  style={{ 
-    cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
-    opacity: cart.length === 0 ? 0.6 : 1 
-  }}
->
-  {cart.length === 0 ? "Add Items to Bill" : "Pay & Print Receipt (₹" + grandTotal.toFixed(2) + ")"}
-</button>
+          <div className="summary-row"><span>GST Tax</span><span>₹{totalTax.toFixed(2)}</span></div>
+          
+          <div className="summary-row discount-row">
+  <span>Manual Discount (₹)</span>
+  <input 
+    type="number" 
+    className="discount-input" 
+    value={discount} 
+    placeholder="0" // Shows 0 only as a hint
+    min="0"         // Prevents clicking down into negatives
+    onKeyDown={(e) => {
+      // Prevents typing '-', 'e' (scientific notation), and '+'
+      if (["-", "+", "e", "E"].includes(e.key)) {
+        e.preventDefault();
+      }
+    }}
+    onChange={(e) => {
+      const val = e.target.value;
+      // Allows empty string (clearing the box) or positive numbers only
+      if (val === "" || parseFloat(val) >= 0) {
+        setDiscount(val);
+      }
+    }} 
+  />
+</div>
+
+          <div className="summary-row grand-total">
+            <span>Grand Total</span>
+            <span>₹{grandTotal.toFixed(2)}</span>
+          </div>
+          
+          <div className="savings-highlight">
+            You are saving ₹{totalSavings.toFixed(2)} on this bill!
+          </div>
+
+          <button className="pay-button" onClick={checkout} disabled={cart.length === 0}>
+            Pay & Print Receipt
+          </button>
         </div>
       </div>
 
+      {/* Hidden Receipt Component */}
       <div style={{ display: 'none' }}>
-        <InvoiceTicket ref={printRef} cart={cart} subtotal={subtotal} tax={totalTax} total={grandTotal} />
+        <InvoiceTicket 
+          ref={printRef} 
+          cart={cart} 
+          subtotal={subtotal} 
+          tax={totalTax} 
+          discount={currentDiscount} 
+          total={grandTotal}
+          savings={totalSavings} 
+        />
       </div>
     </div>
   );

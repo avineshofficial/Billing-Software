@@ -65,12 +65,13 @@ def read_all_sales_merged():
 
 class Product(BaseModel):
     id: Optional[str] = None
+    product_code: Optional[str] = "N/A"  # Added default value
     name: str
     category: str
     price: float
+    mrp: Optional[float] = 0.0           # Added default value
     gst_percentage: int
     stock: int
-    image_url: Optional[str] = ""
 
 class CartItem(BaseModel):
     id: str
@@ -82,8 +83,10 @@ class CartItem(BaseModel):
 class SaleRequest(BaseModel):
     items: List[CartItem]
     total_amount: float
-    subtotal: Optional[float] = 0.0
-    tax: Optional[float] = 0.0
+    subtotal: float
+    tax: float
+    discount: float
+    savings: float # Ensure this is included
 
 # --- 5. ENDPOINTS ---
 
@@ -165,28 +168,29 @@ def update_sale(sale_id: str, updated_sale: SaleRequest):
         
         for i, s in enumerate(sales):
             if str(s["id"]) == str(sale_id):
-                # 1. ALWAYS Revert Stock first (Add items back to inventory)
+                # 1. Revert Old Stock
                 for old_item in s["items"]:
                     for p in products:
                         if str(p["id"]) == str(old_item["id"]):
                             p["stock"] = int(p.get("stock", 0)) + int(old_item["quantity"])
                 
-                # 2. CHECK: If new total is 0 or no items, DELETE the bill
+                # 2. Check for Zero Amount Deletion
                 if updated_sale.total_amount <= 0 or not updated_sale.items:
-                    sales.pop(i) # Remove from list
+                    sales.pop(i)
                     write_json(path, sales)
                     write_json(PRODUCTS_FILE, products)
-                    return {"message": "Bill amount was zero. Record deleted from database."}
-                
-                # 3. ELSE: Process as a normal update
+                    return {"message": "Record deleted due to zero amount"}
+
+                # 3. Apply New Stock
                 for new_item in updated_sale.items:
                     for p in products:
                         if str(p["id"]) == str(new_item.id):
                             p["stock"] = max(0, int(p.get("stock", 0)) - int(new_item.quantity))
                 
+                # 4. Update full record with new totals
                 new_data = updated_sale.dict()
                 new_data["id"] = sale_id
-                new_data["timestamp"] = s["timestamp"]
+                new_data["timestamp"] = s["timestamp"] 
                 sales[i] = new_data
                 
                 write_json(path, sales)
@@ -196,7 +200,7 @@ def update_sale(sale_id: str, updated_sale: SaleRequest):
         if sale_processed: break
         
     if not sale_processed: raise HTTPException(status_code=404)
-    return {"message": "Sale updated successfully"}
+    return {"message": "Updated successfully"}
 
 @app.delete("/api/sales/{sale_id}")
 def delete_sale(sale_id: str):

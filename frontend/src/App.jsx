@@ -1,30 +1,65 @@
-import { Routes, Route, NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import Billing from './Billing';
 import AdminDashboard from './AdminDashboard';
 import AddProduct from './AddProduct';
 import EditProduct from './EditProduct';
 import Reports from './Reports';
+import AdminLogin from './AdminLogin';
 import './App.css';
 
 function App() {
+  // Track if Admin is logged in
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    localStorage.getItem('admin_authenticated') === 'true'
+  );
+
+  const logoutAdmin = () => {
+    localStorage.removeItem('admin_authenticated');
+    setIsAuthenticated(false);
+    window.location.href = "/"; 
+  };
+
+  // --- PROTECTED ROUTE WRAPPER (Used ONLY for Admin now) ---
+  const ProtectedRoute = ({ children }) => {
+    return isAuthenticated ? children : <Navigate to="/login" />;
+  };
+
   return (
     <>
       <nav className="navbar">
         <h2>Hashi Ice Spot</h2>
         <div className="nav-links">
           <NavLink to="/">POS</NavLink>
-          <NavLink to="/admin">Admin</NavLink>
+          
+          {/* Everyone can see and click Reports now */}
           <NavLink to="/reports">Reports</NavLink>
+          
+          <NavLink to="/admin">Admin</NavLink>
+          
+          {/* Logout only shows if Admin is logged in */}
+          {isAuthenticated && (
+            <button onClick={logoutAdmin} className="btn-logout">Logout Admin</button>
+          )}
         </div>
       </nav>
 
       <main className="container">
         <Routes>
+          {/* 1. PUBLIC ROUTES (No Password) */}
           <Route path="/" element={<Billing />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/add" element={<AddProduct />} />
-          <Route path="/admin/edit/:id" element={<EditProduct />} />
           <Route path="/reports" element={<Reports />} />
+          
+          {/* 2. LOGIN ROUTE */}
+          <Route 
+            path="/login" 
+            element={<AdminLogin setAuth={setIsAuthenticated} />} 
+          />
+
+          {/* 3. PROTECTED ADMIN ROUTES (Password Required) */}
+          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/add" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
+          <Route path="/admin/edit/:id" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />
         </Routes>
       </main>
     </>
