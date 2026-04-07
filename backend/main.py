@@ -101,6 +101,21 @@ def update_product(pid: str, up: Product):
             return up
     raise HTTPException(status_code=404)
 
+# --- Inside F:\Billing-Software\backend\main.py ---
+
+@app.delete("/api/products/{product_id}") # Must be plural 'products'
+def delete_product(product_id: str):
+    products = read_json(PRODUCTS_FILE)
+    # Convert everything to string to ensure a perfect match
+    new_products = [p for p in products if str(p.get("id")) != str(product_id)]
+    
+    if len(products) == len(new_products):
+        # If lengths are same, nothing was found to delete
+        raise HTTPException(status_code=404, detail="Product ID not found")
+        
+    write_json(PRODUCTS_FILE, new_products)
+    return {"message": "Product deleted successfully"}
+
 # --- 6. SALES ENDPOINTS ---
 @app.post("/api/sales")
 def process_sale(sale: SaleRequest):
