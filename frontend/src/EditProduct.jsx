@@ -13,7 +13,7 @@ function EditProduct() {
     category: '',
     price: '',
     mrp: '',
-    gst_percentage: '18',
+    gst_percentage: '0',
     stock: ''
   });
 
@@ -30,7 +30,7 @@ function EditProduct() {
             category: p.category || '',
             price: p.price || '',
             mrp: p.mrp || '',
-            gst_percentage: p.gst_percentage ? p.gst_percentage.toString() : '18',
+            gst_percentage: p.gst_percentage ? p.gst_percentage.toString() : '0',
             stock: p.stock || ''
           });
         }
