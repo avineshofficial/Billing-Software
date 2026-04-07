@@ -1,0 +1,13 @@
+[
+    {
+        "id": "6f88dfd8-9307-4d0f-87f0-cc0f3b0715fa",
+        "product_code": "01",
+        "name": "vanilla",
+        "category": "Ice Cream",
+        "price": 260.0,
+        "mrp": 300.0,
+        "gst_percentage": 0,
+        "stock": 10,
+        "image_url": ""
+    }
+]
