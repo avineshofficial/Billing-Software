@@ -464,7 +464,6 @@
 }
 
 .product-card:hover {
- 
   box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
   border-color: #3b82f6;
   z-index: 10; /* Ensures the card pops over the others when lifting */
