@@ -35,27 +35,26 @@ function Billing() {
   };
 
   const addToCart = (p) => {
-    const ex = cart.find(i => i.id === p.id);
-    if (ex) {
-      if (ex.quantity >= p.stock) return alert("Insufficient stock in inventory!");
-      setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
-    } else {
-      if (p.stock < 1) return alert("Product is out of stock!");
-      setCart([...cart, { ...p, quantity: 1 }]);
-    }
-  };
+  const ex = cart.find(i => i.id === p.id);
+  if (ex) {
+    // REMOVED: Stock limit check. You can add as many as you want.
+    setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
+  } else {
+    // Even if p.stock is 0, we allow adding to cart
+    setCart([...cart, { ...p, quantity: 1 }]);
+  }
+};
 
   const updateQty = (id, delta) => {
-    setCart(cart.map(item => {
-      if (item.id === id) {
-        const newQty = item.quantity + delta;
-        const stockLimit = products.find(p => p.id === id)?.stock || 999;
-        if (newQty > stockLimit) { alert("Stock limit reached!"); return item; }
-        return newQty > 0 ? { ...item, quantity: newQty } : item;
-      }
-      return item;
-    }));
-  };
+  setCart(cart.map(item => {
+    if (item.id === id) {
+      const newQty = item.quantity + delta;
+      // Allows unlimited quantity increase
+      return newQty > 0 ? { ...item, quantity: newQty } : item;
+    }
+    return item;
+  }));
+};
 
   const removeFromCart = (id) => setCart(cart.filter(i => i.id !== id));
 

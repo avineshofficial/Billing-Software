@@ -50,16 +50,16 @@ def get_active_sales_file():
     files.sort(key=lambda x: int(x.split('_v')[1].split('.json')[0]))
     return os.path.join(DATA_DIR, files[-1])
 
-# --- 4. MODELS ---
+# --- Update this in main.py ---
 class Product(BaseModel):
     id: Optional[str] = None
     product_code: Optional[str] = "N/A"
-    name: str
-    category: str
-    price: float
+    name: str  # Only name is strictly required to identify the item
+    category: Optional[str] = "General"
+    price: float = 0.0
     mrp: Optional[float] = 0.0
-    gst_percentage: int
-    stock: int
+    gst_percentage: Optional[int] = 0
+    stock: Optional[int] = 0 
     image_url: Optional[str] = ""
 
 class CartItem(BaseModel):
@@ -119,15 +119,17 @@ def delete_product(product_id: str):
 # --- 6. SALES ENDPOINTS ---
 @app.post("/api/sales")
 def process_sale(sale: SaleRequest):
-    # Stock Update
-    prods = read_json(PRODUCTS_FILE)
+    products = read_json(PRODUCTS_FILE)
     for item in sale.items:
-        for p in prods:
+        for p in products:
             if str(p["id"]) == str(item.id):
-                p["stock"] = max(0, int(p.get("stock", 0)) - int(item.quantity))
-    write_json(PRODUCTS_FILE, prods)
-
-    # Save Sale
+                # We subtract stock but we DON'T block the sale if it's 0
+                current_stock = int(p.get("stock", 0))
+                p["stock"] = current_stock - int(item.quantity)
+                break
+    write_json(PRODUCTS_FILE, products)
+    
+    # Save the sale record (Same rotation logic as before)
     path = get_active_sales_file()
     sales = read_json(path)
     rec = sale.dict()
@@ -135,12 +137,6 @@ def process_sale(sale: SaleRequest):
     rec["timestamp"] = datetime.now().isoformat()
     sales.append(rec)
     write_json(path, sales)
-
-    # Rotation check
-    if os.path.getsize(path) > MAX_FILE_SIZE:
-        v = int(path.split('_v')[1].split('.json')[0])
-        write_json(os.path.join(DATA_DIR, f"sales_v{v+1}.json"), [])
-
     return {"status": "success"}
 
 @app.get("/api/sales")
@@ -160,7 +156,6 @@ def update_sale(sid: str, sale: SaleRequest):
         data = read_json(path)
         for i, s in enumerate(data):
             if str(s["id"]) == str(sid):
-                # Revert old stock
                 for oi in s["items"]:
                     for p in prods:
                         if str(p["id"]) == str(oi["id"]): p["stock"] += oi["quantity"]

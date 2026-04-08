@@ -325,3 +325,61 @@ body {
   background: #ef4444;
   color: white;
 }
+
+/* --- Professional Add Product UI --- */
+.form-header-pro {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #3b82f6;
+  padding: 15px 20px;
+  margin: -2.5rem -2.5rem 2rem -2.5rem; /* Offsets form-card padding */
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.step-badge {
+  background-color: #166534;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.form-title-pro {
+  margin: 0;
+  font-size: 1.3rem;
+  color: #1e293b;
+}
+
+.grid-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+.req { color: #ef4444; margin-left: 3px; font-weight: bold; }
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 20px;
+}
+
+/* Custom Select Styling */
+.form-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 1rem;
+}
