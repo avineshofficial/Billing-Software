@@ -92,7 +92,7 @@
   padding: 15px;
   text-align: left; /* Align text left for pro look */
   cursor: pointer;
-  transition: all 0.2s;
+ 
   height: auto;
 }
 
@@ -421,4 +421,116 @@
   color: #111827;
   font-size: 1.8rem; /* Make total big */
   font-weight: 900;
+}
+
+/* --- PRODUCT GRID CONTAINER --- */
+.product-grid-container {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.product-grid {
+  display: grid;
+  /* Increased width to 220px to prevent the cards from being too skinny */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+  gap: 25px; /* Increased gap to prevent overlapping on hover */
+  align-items: start;
+  padding: 10px;
+}
+
+/* --- IMPROVED PRODUCT CARD --- */
+.product-card {
+  background: white;
+  border: 1px solid #eef2f6;
+  /* Thick blue bar on the left as seen in your image */
+  border-left: 6px solid #3b82f6; 
+  border-radius: 12px;
+  padding: 20px;
+  text-align: left;
+  cursor: pointer;
+ border-color: #3b82f6;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* Set a min-height to ensure all cards are the same size but don't clip */
+  min-height: 160px; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.product-card:hover {
+ 
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
+  border-color: #3b82f6;
+  z-index: 10; /* Ensures the card pops over the others when lifting */
+}
+
+/* --- CATEGORY BADGE --- */
+.p-badge {
+  font-size: 0.7rem;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 4px 10px;
+  border-radius: 6px;
+  width: fit-content;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* --- PRODUCT TITLES --- */
+.product-card h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  color: #1e293b;
+  font-weight: 700;
+  /* Allows name to take two lines then adds ... if too long */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- PRICE SECTION --- */
+.p-prices {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: auto; /* Pushes price to the bottom area */
+  padding-bottom: 8px;
+}
+
+.mrp-striked {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.sale-price {
+  color: #2563eb;
+  font-weight: 800;
+  font-size: 1.4rem;
+}
+
+/* --- BOTTOM INFO (STOCK/TAX) --- */
+.p-details {
+  font-size: 0.8rem;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.low-stock {
+  color: #ef4444;
+  font-weight: bold;
 }

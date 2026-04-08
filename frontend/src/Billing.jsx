@@ -10,7 +10,7 @@ function Billing() {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [discountPercent, setDiscountPercent] = useState(""); 
-  
+  const [lastBillId, setLastBillId] = useState("");
   // 1. REF FOR PRINTER - Used to target the receipt
   const printRef = useRef();
 
@@ -88,25 +88,56 @@ function Billing() {
   });
 
   const checkout = async () => {
-    if (cart.length === 0) return;
-    try {
-      // Step A: Save sale record to Database
-      await axios.post(`${API_URL}/sales`, { 
-        items: cart, 
-        total_amount: grandTotal, 
-        subtotal, 
-        tax: totalTax,
-        discount: discountAmount,
-        savings: totalSavings 
-      });
-      
-      // Step B: Trigger the Print Dialog
-      handlePrint(); 
-      
-    } catch (e) { 
-        alert("Checkout failed. Check if Backend server is running."); 
-    }
+  if (cart.length === 0) return;
+
+  // CRITICAL: Convert everything to pure numbers and handle empty values
+  const saleData = {
+    items: cart.map(item => ({
+      id: item.id,
+      name: item.name,
+      price: Number(item.price) || 0,
+      quantity: Number(item.quantity) || 1,
+      gst_percentage: Number(item.gst_percentage) || 0,
+      mrp: Number(item.mrp || item.price) || 0
+    })),
+    total_amount: Number(grandTotal) || 0,
+    subtotal: Number(subtotal) || 0,
+    tax: Number(totalTax) || 0,
+    discount: Number(discountAmount) || 0,
+    savings: Number(totalSavings) || 0
   };
+
+  console.log("SENDING DATA TO SERVER:", saleData); // Debugging
+
+  try {
+    const response = await axios.post(`${API_URL}/sales`, saleData);
+    
+    // If successful, get the Bill ID
+    const billId = response.data.id || "000000";
+    setLastBillId(billId.substring(billId.length - 6).toUpperCase());
+
+    // Wait a split second for state to update then print
+    setTimeout(() => {
+      handlePrint();
+      // Clean up POS after print starts
+      setCart([]);
+      setDiscountPercent("");
+      localStorage.removeItem('hashi_pos_cart');
+      fetchProducts();
+      alert("Billing Completed!");
+    }, 300);
+
+  } catch (error) {
+    // Improved Error Logging
+    if (error.response) {
+      console.error("SERVER REJECTED DATA:", error.response.data);
+      alert("Validation Error: " + JSON.stringify(error.response.data.detail));
+    } else {
+      console.error("NETWORK OR CODE ERROR:", error.message);
+      alert("Connection Error: Is the Backend server running?");
+    }
+  }
+};
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -205,17 +236,18 @@ function Billing() {
         so react-to-print can capture it correctly.
       */}
       <div style={{ display: "none" }}>
-        <div ref={printRef}>
-          <InvoiceTicket 
-            cart={cart} 
-            subtotal={subtotal} 
-            tax={totalTax} 
-            discount={discountAmount} 
-            total={grandTotal}
-            savings={totalSavings} 
-          />
-        </div>
-      </div>
+  <div ref={printRef}>
+    <InvoiceTicket 
+      cart={cart} 
+      subtotal={subtotal} 
+      tax={totalTax} 
+      discount={discountAmount} 
+      total={grandTotal}
+      savings={totalSavings} 
+      billNo={lastBillId} // Pass the bill number here
+    />
+  </div>
+</div>
     </div>
   );
 }

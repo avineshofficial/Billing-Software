@@ -65,19 +65,19 @@ class Product(BaseModel):
 class CartItem(BaseModel):
     id: str
     name: str
-    price: float
-    quantity: int
+    price: float = 0.0
+    quantity: int = 1
     gst_percentage: Optional[int] = 0
     mrp: Optional[float] = 0.0
 
 class SaleRequest(BaseModel):
     items: List[CartItem]
-    total_amount: float
-    subtotal: float
-    tax: float
-    discount: float
-    savings: float
-
+    total_amount: float = 0.0
+    subtotal: float = 0.0
+    tax: float = 0.0
+    discount: float = 0.0
+    savings: float = 0.0
+    
 # --- 5. PRODUCT ENDPOINTS ---
 @app.get("/api/products")
 def get_products(): return read_json(PRODUCTS_FILE)
