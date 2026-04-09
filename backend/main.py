@@ -72,11 +72,53 @@ class CartItem(BaseModel):
 
 class SaleRequest(BaseModel):
     items: List[CartItem]
-    total_amount: float = 0.0
-    subtotal: float = 0.0
-    tax: float = 0.0
-    discount: float = 0.0
-    savings: float = 0.0
+    total_amount: float
+    subtotal: float
+    tax: float
+    discount: float
+    savings: float
+    bill_no: Optional[int] = None
+    # --- NEW PAYMENT FIELDS ---
+    payment_method: str  # "Cash", "UPI", or "Cash+UPI"
+    cash_amount: float = 0.0
+    upi_amount: float = 0.0
+
+def get_next_bill_number():
+    all_sales = read_all_sales_merged()
+    if not all_sales:
+        return 1
+    # Extract all bill numbers, filter out None, and find max
+    nums = [s.get("bill_no", 0) for s in all_sales]
+    return max(nums) + 1
+
+def read_all_sales_merged():
+    """Combines all sales_v*.json files into one list."""
+    merged_sales = []
+    files = [f for f in os.listdir(DATA_DIR) if f.startswith("sales_v") and f.endswith(".json")]
+    files.sort(key=lambda x: int(x.split('_v')[1].split('.json')[0]))
+    for file in files:
+        merged_sales.extend(read_json(os.path.join(DATA_DIR, file)))
+    return merged_sales
+
+def get_next_bill_number():
+    """Finds the highest bill_no in the history and adds 1."""
+    all_sales = read_all_sales_merged()
+    if not all_sales:
+        return 1
+    # Find the maximum bill_no value, defaulting to 0 if not found
+    nums = [s.get("bill_no", 0) for s in all_sales if isinstance(s.get("bill_no"), int)]
+    return max(nums, default=0) + 1
+
+def get_active_sales_file():
+    """Identifies the latest version of the sales file."""
+    files = [f for f in os.listdir(DATA_DIR) if f.startswith("sales_v") and f.endswith(".json")]
+    if not files:
+        f = os.path.join(DATA_DIR, "sales_v1.json")
+        if not os.path.exists(f): write_json(f, [])
+        return f
+    # Sort files to find the highest version (e.g., v2 is higher than v1)
+    files.sort(key=lambda x: int(x.split('_v')[1].split('.json')[0]))
+    return os.path.join(DATA_DIR, files[-1])
     
 # --- 5. PRODUCT ENDPOINTS ---
 @app.get("/api/products")
@@ -119,25 +161,57 @@ def delete_product(product_id: str):
 # --- 6. SALES ENDPOINTS ---
 @app.post("/api/sales")
 def process_sale(sale: SaleRequest):
+    # --- 1. REDUCE STOCK IN INVENTORY ---
     products = read_json(PRODUCTS_FILE)
     for item in sale.items:
         for p in products:
-            if str(p["id"]) == str(item.id):
-                # We subtract stock but we DON'T block the sale if it's 0
+            # Match IDs (converting both to string to be safe)
+            if str(p.get("id")) == str(item.id):
                 current_stock = int(p.get("stock", 0))
+                # Subtract quantity (allows negative stock if selling more than owned)
                 p["stock"] = current_stock - int(item.quantity)
                 break
+    # Save the updated products list
     write_json(PRODUCTS_FILE, products)
-    
-    # Save the sale record (Same rotation logic as before)
+
+    # --- 2. GENERATE SEQUENTIAL BILL NUMBER (1, 2, 3...) ---
+    # Scans all versioned files to find the highest number currently used
+    next_no = get_next_bill_number()
+
+    # --- 3. SAVE THE SALE TO THE ACTIVE JSON FILE ---
+    # This finds the latest file (e.g., sales_v1.json or sales_v2.json)
     path = get_active_sales_file()
-    sales = read_json(path)
-    rec = sale.dict()
-    rec["id"] = str(uuid.uuid4())
-    rec["timestamp"] = datetime.now().isoformat()
-    sales.append(rec)
-    write_json(path, sales)
-    return {"status": "success"}
+    sales_data = read_json(path)
+    
+    # Create the final record
+    sale_record = sale.dict()
+    sale_record["id"] = str(uuid.uuid4()) # Unique database ID
+    sale_record["timestamp"] = datetime.now().isoformat()
+    sale_record["bill_no"] = next_no # The customer-facing bill number
+    
+    sales_data.append(sale_record)
+    write_json(path, sales_data)
+
+    # --- 4. CHECK FILE SIZE FOR ROTATION (40MB LIMIT) ---
+    try:
+        if os.path.getsize(path) > MAX_FILE_SIZE:
+            # Extract current version number from filename (e.g., "sales_v1.json" -> 1)
+            current_v = int(path.split('_v')[1].split('.json')[0])
+            new_file_name = os.path.join(DATA_DIR, f"sales_v{current_v + 1}.json")
+            # Create a fresh empty file for the next transaction
+            if not os.path.exists(new_file_name):
+                write_json(new_file_name, [])
+    except Exception as e:
+        print(f"Rotation Error: {e}")
+
+    # --- 5. RETURN DATA TO FRONTEND ---
+    # We send back 'bill_no' so the printer can show "INV NO: 5"
+    return {
+        "status": "success", 
+        "id": sale_record["id"], 
+        "bill_no": next_no,
+        "message": "Stock updated and sale recorded."
+    }
 
 @app.get("/api/sales")
 def get_all_sales():
