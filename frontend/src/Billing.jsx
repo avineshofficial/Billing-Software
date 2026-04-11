@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useReactToPrint } from 'react-to-print';
 import InvoiceTicket from './InvoiceTicket';
-import ManualEntryBar from './ManualEntryBar';
+import ManualEntryBar from './ManualEntryBar'; // Import the new bar
 import './Billing.css';
 
 const API_URL = 'http://127.0.0.1:8000/api';
@@ -15,12 +15,14 @@ function Billing() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [amountReceived, setAmountReceived] = useState("");
   
-  // --- NEW PAYMENT STATES ---
-  const [paymentMethod, setPaymentMethod] = useState("Cash"); // Default
+  // Payment States
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [cashPaid, setCashPaid] = useState("");
   const [upiPaid, setUpiPaid] = useState("");
 
   const printRef = useRef();
+
+  // 1. Load cart from memory
   const [cart, setCart] = useState(() => {
     const saved = localStorage.getItem('hashi_pos_cart');
     return saved ? JSON.parse(saved) : [];
@@ -36,7 +38,7 @@ function Billing() {
     try {
       const res = await axios.get(`${API_URL}/products`);
       setProducts(res.data);
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Fetch error", e); }
   };
 
   const handlePrint = useReactToPrint({
@@ -55,12 +57,31 @@ function Billing() {
       setCart([]);
       setDiscountPercent("");
       setLastBillId("");
+      setAmountReceived("");
       setPaymentMethod("Cash");
       setCashPaid("");
       setUpiPaid("");
       localStorage.removeItem('hashi_pos_cart');
       fetchProducts();
     }
+  };
+
+  // --- UNIVERSAL SEARCH LOGIC ---
+  const filteredProducts = products.filter(p => {
+    const search = searchTerm.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(search) || 
+      (p.category && p.category.toLowerCase().includes(search)) || 
+      (p.product_code && p.product_code.toLowerCase().includes(search)) ||
+      (p.price && p.price.toString().includes(search)) ||
+      (p.mrp && p.mrp.toString().includes(search))
+    );
+  });
+
+  const addToCart = (p) => {
+    const ex = cart.find(i => i.id === p.id);
+    if (ex) setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
+    else setCart([...cart, { ...p, quantity: 1 }]);
   };
 
   // Calculations
@@ -75,20 +96,8 @@ function Billing() {
 
   const checkout = async () => {
     if (cart.length === 0) return;
-
-    // Validate Split Payment
-    let finalCash = 0;
-    let finalUpi = 0;
-
-    if (paymentMethod === "Cash") finalCash = grandTotal;
-    else if (paymentMethod === "UPI") finalUpi = grandTotal;
-    else {
-      finalCash = parseFloat(cashPaid) || 0;
-      finalUpi = parseFloat(upiPaid) || 0;
-      if (Math.abs((finalCash + finalUpi) - grandTotal) > 0.1) {
-        return alert(`Split total (₹${(finalCash + finalUpi).toFixed(2)}) must equal Net Total (₹${grandTotal.toFixed(2)})`);
-      }
-    }
+    let finalCash = paymentMethod === "Cash" ? grandTotal : (paymentMethod === "UPI" ? 0 : parseFloat(cashPaid) || 0);
+    let finalUpi = paymentMethod === "UPI" ? grandTotal : (paymentMethod === "Cash" ? 0 : parseFloat(upiPaid) || 0);
 
     const saleData = {
       items: cart,
@@ -111,21 +120,24 @@ function Billing() {
     } catch (e) { alert("Checkout failed"); }
   };
 
-  const addToCart = (p) => {
-    const ex = cart.find(i => i.id === p.id);
-    if (ex) setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
-    else setCart([...cart, { ...p, quantity: 1 }]);
-  };
-
   return (
     <div className="billing-layout">
       <div className="product-grid-container">
+        
+        {/* TOP MANUAL ENTRY BAR */}
         <ManualEntryBar onAddManual={(item) => addToCart(item)} />
+
         <div className="search-container">
-          <input className="search-input" placeholder="Search..." onChange={(e) => setSearchTerm(e.target.value)} />
+          <input 
+            className="search-input" 
+            placeholder="Search by Name, Category, Price or Code..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)} 
+          />
         </div>
+
         <div className="product-grid">
-          {products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map((p) => {
+          {filteredProducts.map((p) => {
             const inCart = cart.find(i => i.id === p.id)?.quantity || 0;
             return (
               <div key={p.id} className="product-card" onClick={() => addToCart(p)}>
@@ -142,8 +154,8 @@ function Billing() {
 
       <div className="cart-panel">
         <div className="cart-header">
-          <h3>Order List ({cart.length})</h3>
-          <button type="button" className="btn-logout" onClick={clearPOS}>New</button>
+          <h3>Bill Items ({cart.reduce((s,i) => s+i.quantity, 0)})</h3>
+          <button type="button" className="btn-logout" onClick={clearPOS}>New Bill</button>
         </div>
 
         <div className="cart-items">
@@ -164,62 +176,42 @@ function Billing() {
 
         <div className="billing-summary">
           <div className="summary-row"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-          <div className="summary-row"><span>GST Tax</span><span>₹{totalTax.toFixed(2)}</span></div>
-          <div className="summary-row">
-            <span>Discount (%)</span>
-            <input type="number" className="discount-input" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} />
-          </div>
+          <div className="summary-row"><span>Discount (%)</span><input type="number" className="discount-input" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} /></div>
           
-          {/* --- PAYMENT METHOD SECTION --- */}
           <div className="payment-section">
-            <label className="section-label">Payment Method</label>
             <div className="payment-grid">
               <button type="button" className={`pay-meth-btn ${paymentMethod === 'Cash' ? 'active' : ''}`} onClick={() => setPaymentMethod('Cash')}>Cash</button>
               <button type="button" className={`pay-meth-btn ${paymentMethod === 'UPI' ? 'active' : ''}`} onClick={() => setPaymentMethod('UPI')}>UPI</button>
               <button type="button" className={`pay-meth-btn ${paymentMethod === 'Cash+UPI' ? 'active' : ''}`} onClick={() => setPaymentMethod('Cash+UPI')}>Split</button>
             </div>
-
             {paymentMethod === "Cash+UPI" && (
               <div className="split-inputs">
-                <input type="number" placeholder="Cash Amount" value={cashPaid} onChange={(e) => setCashPaid(e.target.value)} />
-                <input type="number" placeholder="UPI Amount" value={upiPaid} onChange={(e) => setUpiPaid(e.target.value)} />
+                <input type="number" placeholder="Cash" value={cashPaid} onChange={(e) => setCashPaid(e.target.value)} />
+                <input type="number" placeholder="UPI" value={upiPaid} onChange={(e) => setUpiPaid(e.target.value)} />
               </div>
             )}
           </div>
 
-          <div className="summary-row grand-total">
-            <span>NET TOTAL</span>
-            <span>₹{grandTotal.toFixed(2)}</span>
-          </div>
           <div className="balance-calculator">
-  <div className="balance-row">
-    <span>Amount Received:</span>
-    <input 
-      type="number" 
-      className="received-input" 
-      value={amountReceived} 
-      placeholder="₹0"
-      onChange={(e) => setAmountReceived(e.target.value)} 
-    />
-  </div>
-  <div className={`balance-row return-box ${balanceToReturn > 0 ? 'active' : ''}`}>
-    <span>Balance to Give:</span>
-    <span className="balance-amount">₹{balanceToReturn > 0 ? balanceToReturn.toFixed(2) : '0.00'}</span>
-  </div>
-</div>
+            <div className="balance-row"><span>Amount Received:</span><input type="number" className="received-input" value={amountReceived} onChange={(e) => setAmountReceived(e.target.value)} /></div>
+            <div className={`balance-row return-box ${balanceToReturn > 0 ? 'active' : ''}`}>
+              <span>Balance:</span><span className="balance-amount">₹{balanceToReturn > 0 ? balanceToReturn.toFixed(2) : '0.00'}</span>
+            </div>
+          </div>
 
+          <div className="summary-row grand-total"><span>NET TOTAL</span><span>₹{grandTotal.toFixed(2)}</span></div>
           <button type="button" className="pay-button" onClick={checkout} disabled={cart.length === 0 || isPrinting}>
             {isPrinting ? "Printing..." : "Pay & Print Receipt"}
           </button>
         </div>
       </div>
 
+      {/* GHOST PRINT AREA */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <div ref={printRef}>
           <InvoiceTicket 
-            cart={cart} subtotal={subtotal} tax={totalTax} 
-            discount={currentDiscountAmount} total={grandTotal} 
-            savings={totalSavings} billNo={lastBillId}
+            cart={cart} subtotal={subtotal} tax={totalTax} discount={currentDiscountAmount} 
+            total={grandTotal} savings={totalSavings} billNo={lastBillId} 
             payMethod={paymentMethod} cash={parseFloat(cashPaid) || 0} upi={parseFloat(upiPaid) || 0}
           />
         </div>
