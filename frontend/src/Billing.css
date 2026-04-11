@@ -49,11 +49,9 @@
   outline: none;
   transition: border-color 0.2s;
   box-sizing: border-box;
-}
-
-.search-input:focus {
   border-color: var(--primary-color);
 }
+
 
 .clear-search {
   position: absolute;
@@ -853,10 +851,10 @@
   outline: none;
   transition: all 0.3s ease;
   background-color: #f8fafc;
+  border-color: #3b82f6;
 }
 
 .search-input:focus {
-  border-color: #3b82f6;
   background-color: #fff;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
@@ -1034,6 +1032,71 @@
 /* Remove Arrows from Number Inputs */
 .received-input::-webkit-outer-spin-button,
 .received-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* --- MANUAL ENTRY BAR STYLES --- */
+.manual-entry-bar {
+  background: #1e293b; /* Dark Professional Background */
+  padding: 12px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.manual-form {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.manual-label {
+  color: #94a3b8;
+  font-weight: bold;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.manual-input-name {
+  flex: 2;
+  background: #334155;
+  border: 1px solid #475569;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.manual-input-price {
+  flex: 1;
+  background: #334155;
+  border: 1px solid #475569;
+  color: #10b981; /* Green text for money */
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.manual-add-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.manual-add-btn:hover {
+  background: #2563eb;
+}
+
+/* Remove arrows from number input */
+.manual-input-price::-webkit-outer-spin-button,
+.manual-input-price::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }

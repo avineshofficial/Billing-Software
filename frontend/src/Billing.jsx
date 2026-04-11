@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useReactToPrint } from 'react-to-print';
 import InvoiceTicket from './InvoiceTicket';
+import ManualEntryBar from './ManualEntryBar';
 import './Billing.css';
 
 const API_URL = 'http://127.0.0.1:8000/api';
@@ -119,6 +120,7 @@ function Billing() {
   return (
     <div className="billing-layout">
       <div className="product-grid-container">
+        <ManualEntryBar onAddManual={(item) => addToCart(item)} />
         <div className="search-container">
           <input className="search-input" placeholder="Search..." onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
