@@ -141,35 +141,49 @@ function Reports() {
 
       {/* EDIT MODAL */}
       {editingSale && (
-        <div className="edit-bill-overlay">
-           <div className="edit-bill-modal">
-              <h3>Edit Bill Items</h3>
-              <div className="edit-items-list">
-                {editingSale.items.map(item => (
-                  <div key={item.id} className="edit-item-row">
-                    <div style={{flex: 1}}>
-                        <strong>{item.name}</strong>
-                        <div style={{fontSize: '0.7rem'}}>Price: ₹{item.price} | MRP: ₹{item.mrp || item.price}</div>
-                    </div>
-                    <div className="qty-controls">
-                      <div className="qty-input-group">
-                        <button className="qty-btn" onClick={() => updateItemQty(item.id, -1)}>-</button>
-                        <span className="qty-val">{item.quantity}</span>
-                        <button className="qty-btn" onClick={() => updateItemQty(item.id, 1)}>+</button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+  <div className="edit-bill-overlay">
+    <div className="edit-bill-modal">
+      
+      {/* 1. Header (Fixed) */}
+      <div className="edit-modal-header">
+        <h3>Edit Bill Items</h3>
+        <p style={{ fontSize: '0.8rem', color: '#666' }}>Sale ID: {editingSale.id}</p>
+      </div>
+
+      {/* 2. Scrollable List (Scrolls when items > screen) */}
+      <div className="edit-items-list">
+        {editingSale.items.map(item => (
+          <div key={item.id} className="edit-item-row">
+            <div style={{ flex: 1 }}>
+              <strong>{item.name}</strong>
+              <div style={{ fontSize: '0.7rem' }}>₹{item.price} / unit</div>
+            </div>
+            <div className="qty-controls">
+              <div className="qty-input-group">
+                <button type="button" className="qty-btn" onClick={() => updateItemQty(item.id, -1)}>−</button>
+                <span className="qty-val">{item.quantity}</span>
+                <button type="button" className="qty-btn" onClick={() => updateItemQty(item.id, 1)}>+</button>
               </div>
-              <div className="edit-footer">
-                <div style={{fontSize: '0.9rem', color: '#666'}}>Subtotal: ₹{editingSale.subtotal.toFixed(2)} | Tax: ₹{editingSale.tax.toFixed(2)}</div>
-                <h3 style={{margin: '10px 0'}}>New Total: ₹{editingSale.total_amount.toFixed(2)}</h3>
-                <button className="btn btn-danger" onClick={() => setEditingSale(null)}>Cancel</button>
-                <button className="btn btn-success" onClick={saveChanges} style={{marginLeft: '10px'}}>Save & Sync</button>
-              </div>
-           </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 3. Footer (Fixed at bottom) */}
+      <div className="edit-footer">
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <span>Tax: ₹{editingSale.tax.toFixed(2)}</span>
+          <span style={{ fontWeight: 'bold' }}>New Total: ₹{editingSale.total_amount.toFixed(2)}</span>
         </div>
-      )}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button type="button" className="btn btn-danger" style={{ flex: 1 }} onClick={() => setEditingSale(null)}>Cancel</button>
+          <button type="button" className="btn btn-success" style={{ flex: 2 }} onClick={saveChanges}>Update Bill</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+)}
 
       {/* DATA TABLE */}
       <table className="data-table">

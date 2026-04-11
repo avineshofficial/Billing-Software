@@ -637,3 +637,70 @@ body {
   border: none;
   cursor: pointer;
 }
+
+/* --- UPDATED EDIT BILL MODAL (WITH SCROLLING) --- */
+.edit-bill-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6); /* Slightly darker for focus */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px; /* Safety margin for small screens */
+}
+
+.edit-bill-modal {
+  background: white;
+  padding: 0; /* Changed to 0 so we can style header/footer separately */
+  border-radius: 15px;
+  width: 500px;
+  max-width: 95%;
+  max-height: 90vh; /* Modal will never be taller than 90% of screen */
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column; /* Stack header, list, and footer */
+}
+
+/* Header Section (Fixed) */
+.edit-bill-modal h3, 
+.edit-bill-modal p {
+  padding: 20px 25px 5px 25px;
+  margin: 0;
+}
+
+/* --- THE SCROLLABLE LIST AREA --- */
+.edit-items-list {
+  flex: 1; /* Takes all available space */
+  overflow-y: auto; /* ENABLE SCROLLING HERE */
+  padding: 10px 25px;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+}
+
+/* Styling the scrollbar for the modal */
+.edit-items-list::-webkit-scrollbar {
+  width: 6px;
+}
+.edit-items-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.edit-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #f8fafc;
+}
+
+/* Footer Section (Fixed at bottom) */
+.edit-footer {
+  padding: 20px 25px;
+  background: #f8fafc;
+  border-radius: 0 0 15px 15px;
+}

@@ -12,6 +12,7 @@ function Billing() {
   const [discountPercent, setDiscountPercent] = useState(""); 
   const [lastBillId, setLastBillId] = useState("");
   const [isPrinting, setIsPrinting] = useState(false);
+  const [amountReceived, setAmountReceived] = useState("");
   
   // --- NEW PAYMENT STATES ---
   const [paymentMethod, setPaymentMethod] = useState("Cash"); // Default
@@ -69,6 +70,7 @@ function Billing() {
   const currentDiscountAmount = preDiscountTotal * ((parseFloat(discountPercent) || 0) / 100);
   const grandTotal = Math.max(0, preDiscountTotal - currentDiscountAmount);
   const totalSavings = (totalMrpValue - subtotal) + currentDiscountAmount;
+  const balanceToReturn = amountReceived ? (parseFloat(amountReceived) - grandTotal) : 0;
 
   const checkout = async () => {
     if (cart.length === 0) return;
@@ -187,7 +189,22 @@ function Billing() {
             <span>NET TOTAL</span>
             <span>₹{grandTotal.toFixed(2)}</span>
           </div>
-          <div className="savings-highlight">You have Saved ₹{totalSavings.toFixed(2)}</div>
+          <div className="balance-calculator">
+  <div className="balance-row">
+    <span>Amount Received:</span>
+    <input 
+      type="number" 
+      className="received-input" 
+      value={amountReceived} 
+      placeholder="₹0"
+      onChange={(e) => setAmountReceived(e.target.value)} 
+    />
+  </div>
+  <div className={`balance-row return-box ${balanceToReturn > 0 ? 'active' : ''}`}>
+    <span>Balance to Give:</span>
+    <span className="balance-amount">₹{balanceToReturn > 0 ? balanceToReturn.toFixed(2) : '0.00'}</span>
+  </div>
+</div>
 
           <button type="button" className="pay-button" onClick={checkout} disabled={cart.length === 0 || isPrinting}>
             {isPrinting ? "Printing..." : "Pay & Print Receipt"}
