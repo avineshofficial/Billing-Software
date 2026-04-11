@@ -221,6 +221,24 @@ def get_all_sales():
     for f in files: merged.extend(read_json(os.path.join(DATA_DIR, f)))
     return merged
 
+# Add this endpoint in your main.py
+@app.post("/api/products/bulk")
+def add_products_bulk(products: List[Product]):
+    existing_products = read_json(PRODUCTS_FILE)
+    new_count = 0
+    for p in products:
+        if p.name.strip(): # Only add if name is not empty
+            p.id = str(uuid.uuid4())
+            # Handle defaults for bulk add
+            if not p.product_code: p.product_code = "N/A"
+            if not p.category: p.category = "General"
+            existing_products.append(p.dict())
+            new_count += 1
+    
+    write_json(PRODUCTS_FILE, existing_products)
+    return {"message": f"Successfully added {new_count} products"}
+
+
 @app.put("/api/sales/{sid}")
 def update_sale(sid: str, sale: SaleRequest):
     files = [f for f in os.listdir(DATA_DIR) if f.startswith("sales_v")]

@@ -14,116 +14,118 @@ const InvoiceTicket = forwardRef(({
 }, ref) => {
   return (
     <div ref={ref} style={{ 
-      padding: '10px', 
-      width: '280px', 
-      fontFamily: "'Courier New', Courier, monospace", 
+      padding: '0px 2px 10px 10px', // Added 10px left padding to prevent erasing
+      width: '210px', // Further reduced to safely fit within paper margins
+      fontFamily: "'Courier New', Courier, 'Arial Unicode MS', sans-serif", 
       color: '#000',
       backgroundColor: '#fff',
-      lineHeight: '1.4',
-      fontWeight: '900' // Maximum thickness for thermal print visibility
+      lineHeight: '1.1',
+      fontWeight: '900',
+      margin: '0'
     }}>
+      {/* Printer Command to remove browser margins */}
+      <style>{`
+        @media print {
+          @page { margin: 0; size: 58mm auto; }
+          body { margin: 0; padding: 0; }
+        }
+      `}</style>
+
       {/* --- STORE HEADER --- */}
-      <h2 style={{ textAlign: 'center', margin: '0', fontSize: '22px', fontWeight: '900' }}>HASHI ICE SPOT</h2>
-      <p style={{ textAlign: 'center', margin: '2px 0 10px 0', fontSize: '14px', fontWeight: 'bold' }}>TAX INVOICE</p>
+      <h2 style={{ textAlign: 'center', margin: '5px 0 0 0', fontSize: '14px', fontWeight: '900' }}>நெருங்கிய கூட்டாளி</h2>
+      <p style={{ textAlign: 'center', margin: '0', fontSize: '11px' }}>நிறுவனம்</p>
+      
+      {/* --- ADDRESS --- */}
+      <div style={{ textAlign: 'center', fontSize: '8px', fontWeight: '900', marginBottom: '5px' }}>
+        <div>7/39 B FISH MARKET STREET</div>
+        <div>PARAMAKUDI - 623707</div>
+        <div>PH: 9677794269, 7540038675</div>
+        <div style={{ marginTop: '2px', border: '1px solid #000', display: 'inline-block', padding: '0 2px' }}>
+          GST: 33QEQPS8844G1ZG
+        </div>
+      </div>
+
+      <div style={{ borderBottom: '1px dashed #000', margin: '3px 0' }}></div>
       
       {/* --- BILL INFO --- */}
-      <div style={{ fontSize: '12px', fontWeight: '900' }}>
+      <div style={{ fontSize: '9px', fontWeight: '900' }}>
          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>INV NO: {billNo || "..."}</span>
+            <span>INV:#{billNo || "0"}</span>
             <span>{new Date().toLocaleDateString()}</span>
          </div>
-         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>TIME: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+         <div style={{ textAlign: 'left' }}>
+            TIME:{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
          </div>
       </div>
       
-      {/* THICK DASHED DIVIDER */}
-      <div style={{ borderBottom: '2px dashed #000', margin: '8px 0' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', margin: '3px 0' }}></div>
       
-      {/* --- ITEMS TABLE --- */}
-      <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse', fontWeight: '900' }}>
+      {/* --- ITEMS TABLE (Extreme Width Optimization) --- */}
+      <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse', fontWeight: '900', tableLayout: 'fixed' }}>
         <thead>
-          <tr style={{ borderBottom: '2px solid #000' }}>
-            <th align="left" style={{ paddingBottom: '5px' }}>ITEM</th>
-            <th align="right">MRP</th>
-            <th align="right">PRICE</th>
-            <th align="center">QTY</th>
-            <th align="right">TOTAL</th>
+          <tr style={{ borderBottom: '1px solid #000' }}>
+            <th align="left" style={{ width: '38%' }}>ITEM</th>
+            <th align="right" style={{ width: '17%' }}>MRP</th>
+            <th align="right" style={{ width: '17%' }}>PRC</th>
+            <th align="center" style={{ width: '8%' }}>Q</th>
+            <th align="right" style={{ width: '20%' }}>TOT</th>
           </tr>
         </thead>
         <tbody>
           {cart.map((item, index) => (
             <tr key={index}>
-              <td style={{ padding: '6px 0', maxWidth: '85px', wordBreak: 'break-all', fontSize: '12px' }}>
-                {item.name.toUpperCase()}
+              <td style={{ padding: '2px 0', overflow: 'hidden', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                {item.name}
               </td>
               <td align="right">{item.mrp || item.price}</td>
               <td align="right">{item.price}</td>
               <td align="center">{item.quantity}</td>
-              <td align="right">{(item.price * item.quantity).toFixed(2)}</td>
+              <td align="right">{(item.price * item.quantity).toFixed(0)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* DASHED DIVIDER */}
-      <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', margin: '3px 0' }}></div>
       
-      {/* --- BILL SUMMARY --- */}
-      <div style={{ fontSize: '13px', fontWeight: '900' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+      {/* --- SUMMARY --- */}
+      <div style={{ fontSize: '9px', fontWeight: '900' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>Subtotal:</span>
           <span>₹{subtotal.toFixed(2)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <span>GST Tax:</span>
           <span>₹{tax.toFixed(2)}</span>
         </div>
         
         {discount > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>Discount:</span>
-            <span>- ₹{discount.toFixed(2)}</span>
+            <span>-₹{discount.toFixed(2)}</span>
           </div>
         )}
         
-        <div style={{ borderBottom: '2px solid #000', margin: '5px 0' }}></div>
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: '900' }}>
+        <div style={{ borderTop: '1px solid #000', marginTop: '3px', paddingTop: '2px', display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
           <span>NET PAYABLE:</span>
           <span>₹{total.toFixed(2)}</span>
         </div>
       </div>
 
-      <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
-      {/* --- NEW PAYMENT METHOD SECTION --- */}
-      <div style={{ fontSize: '12px', fontWeight: '900' }}>
-        <div>MODE OF PAY: {payMethod.toUpperCase()}</div>
-        
-        {payMethod === "Cash+UPI" && (
-          <div style={{ marginLeft: '10px', marginTop: '4px', fontSize: '11px', borderLeft: '2px solid #000', paddingLeft: '5px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>CASH PAID:</span>
-                <span>₹{cash.toFixed(2)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>UPI PAID:</span>
-                <span>₹{upi.toFixed(2)}</span>
-            </div>
-          </div>
-        )}
+      <div style={{ fontSize: '9px' }}>
+        MODE: {payMethod.toUpperCase()}
       </div>
 
-      <div style={{ borderBottom: '2px dashed #000', margin: '10px 0' }}></div>
+      <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
-      {/* --- SAVINGS SECTION --- */}
-      <div style={{ marginTop: '15px', textAlign: 'center', fontSize: '14px', fontWeight: '900' }}>
+      {/* --- SAVINGS --- */}
+      <div style={{ textAlign: 'center', fontSize: '10px' }}>
         You Have Saved ₹{savings.toFixed(2)}
       </div>
 
-      {/* --- FOOTER --- */}
-      <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '12px', fontWeight: '900' }}>
+      <p style={{ textAlign: 'center', marginTop: '10px', fontSize: '9px', fontWeight: 'bold' }}>
         THANK YOU! VISIT AGAIN
       </p>
     </div>

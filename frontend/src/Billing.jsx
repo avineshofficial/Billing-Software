@@ -187,7 +187,7 @@ function Billing() {
             <span>NET TOTAL</span>
             <span>₹{grandTotal.toFixed(2)}</span>
           </div>
-          <div className="savings-highlight">You Saved ₹{totalSavings.toFixed(2)}</div>
+          <div className="savings-highlight">You have Saved ₹{totalSavings.toFixed(2)}</div>
 
           <button type="button" className="pay-button" onClick={checkout} disabled={cart.length === 0 || isPrinting}>
             {isPrinting ? "Printing..." : "Pay & Print Receipt"}

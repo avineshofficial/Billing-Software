@@ -7,6 +7,7 @@ import EditProduct from './EditProduct';
 import Reports from './Reports';
 import AdminLogin from './AdminLogin';
 import './App.css';
+import BulkAddProduct from './BulkAddProduct';
 
 function App() {
   // Track if Admin is logged in
@@ -28,7 +29,7 @@ function App() {
   return (
     <>
       <nav className="navbar">
-        <h2>Hashi Ice Spot</h2>
+        <h2>நெருங்கிய கூட்டாளி</h2>
         <div className="nav-links">
           <NavLink to="/">POS</NavLink>
           
@@ -60,6 +61,7 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/add" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
           <Route path="/admin/edit/:id" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />
+          <Route path="/admin/bulk-add" element={<ProtectedRoute><BulkAddProduct /></ProtectedRoute>} />
         </Routes>
       </main>
     </>

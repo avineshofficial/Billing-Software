@@ -87,7 +87,7 @@
 .product-card {
   background: white;
   border: 1px solid #e5e7eb;
-  border-left: 5px solid #3b82f6; /* Blue edge */
+  border-color: #3b82f6;
   border-radius: 10px;
   padding: 15px;
   text-align: left; /* Align text left for pro look */
@@ -98,7 +98,7 @@
 
 .product-card:hover {
   box-shadow: 0 12px 20px rgba(0, 0, 0, 0.1); /* Soft shadow beneath */
-  border-color: var(--primary-color);
+
   z-index: 10; /* Brings hovered card to the very front */
 }
 
@@ -465,7 +465,6 @@
 
 .product-card:hover {
   box-shadow: 0 12px 25px rgba(0, 0, 0, 0.1);
-  border-color: #3b82f6;
   z-index: 10; /* Ensures the card pops over the others when lifting */
 }
 
@@ -572,11 +571,12 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  border-color: #3b82f6;
   min-height: 140px;
 }
 
 .product-card:hover {
-  border-color: #3b82f6;
+ 
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
   transform: translateY(-2px);
 }
@@ -703,3 +703,277 @@
   border-color: #2563eb;
   outline: none;
 }   
+
+/* --- PRODUCT GRID --- */
+.product-grid {
+  display: grid;
+  /* 4 Columns as requested */
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 16px;
+  align-items: stretch; /* Makes all cards in a row equal height */
+  padding: 10px;
+}
+
+/* --- PRODUCT CARD --- */
+.product-card {
+  position: relative;
+  background: white;
+  border: 1.5px solid #e2e8f0; 
+  border-radius: 10px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-color: #3b82f6;
+  display: flex;
+  flex-direction: column;
+  min-height: 180px; /* Increased height to prevent clipping */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.1);
+  z-index: 10;
+}
+
+/* Category Badge */
+.p-badge {
+  font-size: 0.65rem;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 700;
+  width: fit-content;
+  margin-bottom: 8px;
+}
+
+/* Product Name */
+.product-card h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  color: #1e293b;
+  font-weight: 800;
+  line-height: 1.3;
+  /* Limit to 2 lines so it doesn't break the card */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Price Section - Pushed to bottom */
+.p-prices {
+  margin-top: auto; /* Pushes everything below this to the bottom */
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 10px;
+}
+
+.sale-price {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #2563eb;
+}
+
+.mrp-striked {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* Stock & Tax Details */
+.p-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+  font-weight: 500;
+}
+
+/* Quantity Badge (Top Right) */
+.card-qty-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #ef4444; /* Red for visibility */
+  color: white;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  z-index: 5;
+}
+
+/* --- ROOT LAYOUT --- */
+.billing-layout {
+  display: grid;
+  grid-template-columns: 1fr 450px;
+  gap: 20px;
+  height: calc(100vh - 110px); 
+  overflow: hidden;
+  padding: 10px 20px;
+  box-sizing: border-box;
+}
+
+/* --- LEFT SIDE: PRODUCT CONTAINER --- */
+.product-grid-container {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eef2f6;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* --- SEARCH BAR IMPROVEMENT --- */
+.search-container {
+  position: relative;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.search-input {
+  width: 100%;
+  padding: 15px 20px;
+  border: 2px solid #f1f5f9;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  outline: none;
+  transition: all 0.3s ease;
+  background-color: #f8fafc;
+}
+
+.search-input:focus {
+  border-color: #3b82f6;
+  background-color: #fff;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* --- PRODUCT GRID (FIXED FOR 4 COLUMNS) --- */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 Products per row */
+  gap: 20px;
+  overflow-y: auto;
+  padding: 10px 5px;
+  /* CRITICAL FIX: Stops cards from stretching to the bottom of the screen */
+  align-items: start; 
+  align-content: start;
+}
+
+/* --- PRODUCT CARD (FIXED HEIGHT) --- */
+.product-card {
+  position: relative;
+  background: white;
+  border: 1.5px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  border-color: #3b82f6;
+  min-height: 180px; 
+  height: auto;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.15);
+
+  z-index: 10;
+}
+
+/* Badge (NUTS, SEEDS, etc) */
+.p-badge {
+  font-size: 0.7rem;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  font-weight: 700;
+  width: fit-content;
+  margin-bottom: 12px;
+}
+
+.product-card h4 {
+  margin: 0 0 15px 0;
+  font-size: 1.15rem;
+  color: #1e293b;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+/* Price Section */
+.p-prices {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.mrp-striked {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.sale-price {
+  color: #2563eb;
+  font-weight: 900;
+  font-size: 1.6rem;
+}
+
+/* Bottom Row */
+.p-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 10px;
+  margin-top: auto; /* Keeps this row at the bottom of the card */
+}
+
+/* Quantity Circle Badge */
+.card-qty-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: #ef4444;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: bold;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  z-index: 5;
+  border: 2px solid white;
+}
+
+/* --- HIDE SCROLLBARS --- */
+.product-grid::-webkit-scrollbar,
+.cart-items::-webkit-scrollbar {
+  display: none;
+}
+.product-grid, .cart-items {
+  scrollbar-width: none;
+}
