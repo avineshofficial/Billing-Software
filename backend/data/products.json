@@ -18,7 +18,7 @@
         "price": 48.0,
         "mrp": 110.0,
         "gst_percentage": 0,
-        "stock": 88,
+        "stock": 84,
         "image_url": ""
     },
     {
@@ -29,7 +29,7 @@
         "price": 238.0,
         "mrp": 275.0,
         "gst_percentage": 0,
-        "stock": 90,
+        "stock": 86,
         "image_url": ""
     },
     {
@@ -73,7 +73,7 @@
         "price": 45.0,
         "mrp": 53.0,
         "gst_percentage": 0,
-        "stock": 97,
+        "stock": 96,
         "image_url": ""
     },
     {
@@ -106,7 +106,7 @@
         "price": 225.0,
         "mrp": 265.0,
         "gst_percentage": 0,
-        "stock": 98,
+        "stock": 97,
         "image_url": ""
     },
     {

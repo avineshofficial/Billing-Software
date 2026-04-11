@@ -14,8 +14,8 @@ const InvoiceTicket = forwardRef(({
 }, ref) => {
   return (
     <div ref={ref} style={{ 
-      padding: '0px 2px 10px 10px', // Added 10px left padding to prevent erasing
-      width: '210px', // Further reduced to safely fit within paper margins
+      padding: '0px 2px 10px 10px', 
+      width: '210px', // Safest width for 58mm printers
       fontFamily: "'Courier New', Courier, 'Arial Unicode MS', sans-serif", 
       color: '#000',
       backgroundColor: '#fff',
@@ -23,7 +23,6 @@ const InvoiceTicket = forwardRef(({
       fontWeight: '900',
       margin: '0'
     }}>
-      {/* Printer Command to remove browser margins */}
       <style>{`
         @media print {
           @page { margin: 0; size: 58mm auto; }
@@ -35,7 +34,6 @@ const InvoiceTicket = forwardRef(({
       <h2 style={{ textAlign: 'center', margin: '5px 0 0 0', fontSize: '14px', fontWeight: '900' }}>நெருங்கிய கூட்டாளி</h2>
       <p style={{ textAlign: 'center', margin: '0', fontSize: '11px' }}>நிறுவனம்</p>
       
-      {/* --- ADDRESS --- */}
       <div style={{ textAlign: 'center', fontSize: '8px', fontWeight: '900', marginBottom: '5px' }}>
         <div>7/39 B FISH MARKET STREET</div>
         <div>PARAMAKUDI - 623707</div>
@@ -53,14 +51,12 @@ const InvoiceTicket = forwardRef(({
             <span>INV:#{billNo || "0"}</span>
             <span>{new Date().toLocaleDateString()}</span>
          </div>
-         <div style={{ textAlign: 'left' }}>
-            TIME:{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-         </div>
+         <div>TIME:{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
       </div>
       
       <div style={{ borderBottom: '1px dashed #000', margin: '3px 0' }}></div>
       
-      {/* --- ITEMS TABLE (Extreme Width Optimization) --- */}
+      {/* --- ITEMS TABLE --- */}
       <table style={{ width: '100%', fontSize: '8px', borderCollapse: 'collapse', fontWeight: '900', tableLayout: 'fixed' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid #000' }}>
@@ -74,9 +70,7 @@ const InvoiceTicket = forwardRef(({
         <tbody>
           {cart.map((item, index) => (
             <tr key={index}>
-              <td style={{ padding: '2px 0', overflow: 'hidden', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                {item.name}
-              </td>
+              <td style={{ padding: '2px 0', overflow: 'hidden', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{item.name}</td>
               <td align="right">{item.mrp || item.price}</td>
               <td align="right">{item.price}</td>
               <td align="center">{item.quantity}</td>
@@ -88,34 +82,41 @@ const InvoiceTicket = forwardRef(({
 
       <div style={{ borderBottom: '1px dashed #000', margin: '3px 0' }}></div>
       
-      {/* --- SUMMARY --- */}
+      {/* --- TOTALS --- */}
       <div style={{ fontSize: '9px', fontWeight: '900' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Subtotal:</span>
-          <span>₹{subtotal.toFixed(2)}</span>
+          <span>Subtotal:</span><span>₹{subtotal.toFixed(2)}</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>GST Tax:</span>
-          <span>₹{tax.toFixed(2)}</span>
+          <span>GST Tax:</span><span>₹{tax.toFixed(2)}</span>
         </div>
-        
         {discount > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>Discount:</span>
-            <span>-₹{discount.toFixed(2)}</span>
+            <span>Discount:</span><span>-₹{discount.toFixed(2)}</span>
           </div>
         )}
-        
         <div style={{ borderTop: '1px solid #000', marginTop: '3px', paddingTop: '2px', display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-          <span>NET PAYABLE:</span>
-          <span>₹{total.toFixed(2)}</span>
+          <span>NET PAYABLE:</span><span>₹{total.toFixed(2)}</span>
         </div>
       </div>
 
       <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
 
-      <div style={{ fontSize: '9px' }}>
-        MODE: {payMethod.toUpperCase()}
+      {/* --- PAYMENT BREAKDOWN (FIXED FOR SPLIT METHOD) --- */}
+      <div style={{ fontSize: '9px', fontWeight: '900' }}>
+        <div>MODE: {payMethod.toUpperCase()}</div>
+        
+        {/* Only shows if payment method is split (Cash+UPI) */}
+        {payMethod === "Cash+UPI" && (
+          <div style={{ marginTop: '3px', borderLeft: '2px solid #000', paddingLeft: '5px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>CASH:</span><span>₹{cash.toFixed(2)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>UPI:</span><span>₹{upi.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ borderBottom: '1px dashed #000', margin: '4px 0' }}></div>
