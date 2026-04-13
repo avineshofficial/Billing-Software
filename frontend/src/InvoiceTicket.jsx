@@ -15,33 +15,27 @@ const InvoiceTicket = forwardRef(({
   return (
     <div ref={ref} style={{ 
       padding: '0px 5px 10px 5px', 
-      width: '230px', // Increased width slightly for better fit
+      width: '230px', 
       fontFamily: "'Courier New', Courier, 'Arial Unicode MS', sans-serif", 
       color: '#000',
       backgroundColor: '#fff',
       lineHeight: '1.2',
-      fontWeight: '900', // Maximum thickness for sharp printing
+      fontWeight: '900', 
       margin: '0'
     }}>
-      {/* --- CSS RESET TO REMOVE BROWSER MARGINS --- */}
+      {/* --- PRINTER CSS RESET --- */}
       <style>{`
         @media print {
-          @page { 
-            margin: 0; 
-            size: 58mm auto; 
-          }
-          body { 
-            margin: 0; 
-            padding: 0; 
-            -webkit-print-color-adjust: exact; 
-          }
+          @page { margin: 0; size: 58mm auto; }
+          body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; }
         }
       `}</style>
 
-      {/* --- STORE HEADER --- */}
+      {/* --- STORE HEADER (TAMIL) --- */}
       <h2 style={{ textAlign: 'center', margin: '5px 0 0 0', fontSize: '18px', fontWeight: '900' }}>நெருங்கிய கூட்டாளி</h2>
       <p style={{ textAlign: 'center', margin: '0', fontSize: '13px', fontWeight: '900' }}>நிறுவனம்</p>
       
+      {/* --- CONTACT & ADDRESS --- */}
       <div style={{ textAlign: 'center', fontSize: '9px', fontWeight: '900', marginBottom: '5px' }}>
         <div>7/39 B FISH MARKET STREET</div>
         <div>PARAMAKUDI - 623707</div>
@@ -67,7 +61,7 @@ const InvoiceTicket = forwardRef(({
       <div style={{ borderBottom: '2px dashed #000', margin: '4px 0' }}></div>
       
       {/* --- ITEMS TABLE --- */}
-      <table style={{ width: '100%', fontSize: '10px', borderCollapse: 'collapse', fontWeight: '900', tableLayout: 'fixed' }}>
+      <table style={{ width: '100%', fontSize: '9px', borderCollapse: 'collapse', fontWeight: '900', tableLayout: 'fixed' }}>
         <thead>
           <tr style={{ borderBottom: '1.5px solid #000' }}>
             <th align="left" style={{ width: '40%' }}>ITEM</th>
@@ -78,29 +72,33 @@ const InvoiceTicket = forwardRef(({
           </tr>
         </thead>
         <tbody>
-          {cart.map((item, index) => (
-            <tr key={index}>
-              <td style={{ 
-                padding: '4px 0', 
-                overflow: 'hidden', 
-                textTransform: 'uppercase', 
-                fontSize: '10px',
-                wordBreak: 'break-all' 
-              }}>
-                {item.name}
-              </td>
-              <td align="right">{item.mrp || item.price}</td>
-              <td align="right">{item.price}</td>
-              <td align="center">{item.quantity}</td>
-              <td align="right">{(item.price * item.quantity).toFixed(0)}</td>
-            </tr>
-          ))}
+          {cart.map((item, index) => {
+            // Calculate item total minus the specific discount for this item
+            const itemLineTotal = (item.price * item.quantity) - (item.discount || 0);
+            return (
+              <tr key={index}>
+                <td style={{ 
+                  padding: '4px 0', 
+                  overflow: 'hidden', 
+                  textTransform: 'uppercase', 
+                  fontSize: '9px',
+                  wordBreak: 'break-all' 
+                }}>
+                  {item.name}
+                </td>
+                <td align="right">{item.mrp || item.price}</td>
+                <td align="right">{item.price}</td>
+                <td align="center">{item.quantity}</td>
+                <td align="right">{itemLineTotal.toFixed(0)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
       <div style={{ borderBottom: '2px dashed #000', margin: '5px 0' }}></div>
       
-      {/* --- TOTALS --- */}
+      {/* --- SUMMARY SECTION --- */}
       <div style={{ fontSize: '11px', fontWeight: '900' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
           <span>Subtotal:</span>
@@ -111,9 +109,10 @@ const InvoiceTicket = forwardRef(({
           <span>₹{tax.toFixed(2)}</span>
         </div>
         
+        {/* Total Discount (Sum of all item-wise discounts) */}
         {discount > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#000' }}>
-            <span>Discount:</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Total Disc:</span>
             <span>-₹{discount.toFixed(2)}</span>
           </div>
         )}
@@ -133,16 +132,16 @@ const InvoiceTicket = forwardRef(({
 
       <div style={{ borderBottom: '2px dashed #000', margin: '6px 0' }}></div>
 
-      {/* --- PAYMENT METHOD --- */}
+      {/* --- PAYMENT MODE & BREAKDOWN --- */}
       <div style={{ fontSize: '10px', fontWeight: '900' }}>
         <div>MODE: {payMethod.toUpperCase()}</div>
         {payMethod === "Cash+UPI" && (
           <div style={{ marginTop: '3px', borderLeft: '3px solid #000', paddingLeft: '5px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>CASH:</span><span>₹{cash.toFixed(2)}</span>
+              <span>CASH PAID:</span><span>₹{cash.toFixed(2)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>UPI:</span><span>₹{upi.toFixed(2)}</span>
+              <span>UPI PAID:</span><span>₹{upi.toFixed(2)}</span>
             </div>
           </div>
         )}
@@ -150,11 +149,12 @@ const InvoiceTicket = forwardRef(({
 
       <div style={{ borderBottom: '2px dashed #000', margin: '6px 0' }}></div>
 
-      {/* --- SAVINGS --- */}
+      {/* --- SAVINGS BOX --- */}
       <div style={{ textAlign: 'center', fontSize: '13px', fontWeight: '900' }}>
         You Have Saved ₹{savings.toFixed(2)}
       </div>
 
+      {/* --- FOOTER --- */}
       <p style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', fontWeight: 'bold' }}>
         THANK YOU! VISIT AGAIN
       </p>

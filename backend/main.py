@@ -69,18 +69,20 @@ class CartItem(BaseModel):
     quantity: int = 1
     gst_percentage: Optional[int] = 0
     mrp: Optional[float] = 0.0
+    discount: float = 0.0  # <--- NEW: Per-item discount amount
 
 class SaleRequest(BaseModel):
     items: List[CartItem]
-    total_amount: float
-    subtotal: float
-    tax: float
-    discount: float
-    savings: float
+    total_amount: float = 0.0
+    subtotal: float = 0.0
+    tax: float = 0.0
+    # We keep global discount/savings fields for reporting totals
+    discount: float = 0.0 
+    savings: float = 0.0
     bill_no: Optional[int] = None
-    payment_method: Optional[str] = "Cash"
-    cash_amount: Optional[float] = 0.0
-    upi_amount: Optional[float] = 0.0
+    payment_method: str
+    cash_amount: float = 0.0
+    upi_amount: float = 0.0
 
 # --- 5. LOGIC HELPERS (FILE ROTATION & BILL NUMBERS) ---
 

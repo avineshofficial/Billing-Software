@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useReactToPrint } from 'react-to-print';
 import InvoiceTicket from './InvoiceTicket';
-import ManualEntryBar from './ManualEntryBar'; // Import the new bar
+import ManualEntryBar from './ManualEntryBar'; 
 import './Billing.css';
 
 const API_URL = 'http://127.0.0.1:8000/api';
@@ -10,7 +10,6 @@ const API_URL = 'http://127.0.0.1:8000/api';
 function Billing() {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [discountPercent, setDiscountPercent] = useState(""); 
   const [lastBillId, setLastBillId] = useState("");
   const [isPrinting, setIsPrinting] = useState(false);
   const [amountReceived, setAmountReceived] = useState("");
@@ -22,12 +21,13 @@ function Billing() {
 
   const printRef = useRef();
 
-  // 1. Load cart from memory
+  // 1. PERSISTENCE: Load cart from memory so switching pages doesn't clear it
   const [cart, setCart] = useState(() => {
     const saved = localStorage.getItem('hashi_pos_cart');
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Save cart whenever it changes
   useEffect(() => {
     localStorage.setItem('hashi_pos_cart', JSON.stringify(cart));
   }, [cart]);
@@ -41,11 +41,16 @@ function Billing() {
     } catch (e) { console.error("Fetch error", e); }
   };
 
+  // --- 2. PRINT CONFIGURATION ---
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    onAfterPrint: () => { setIsPrinting(false); },
+    onAfterPrint: () => {
+      setIsPrinting(false);
+      clearPOS(); // Automatically clear items after printing is finished
+    },
   });
 
+  // Trigger print automatically once Backend returns Bill No and React updates
   useEffect(() => {
     if (isPrinting && lastBillId && printRef.current) {
       handlePrint();
@@ -53,20 +58,17 @@ function Billing() {
   }, [isPrinting, lastBillId]);
 
   const clearPOS = () => {
-    if (window.confirm("Start new order?")) {
-      setCart([]);
-      setDiscountPercent("");
-      setLastBillId("");
-      setAmountReceived("");
-      setPaymentMethod("Cash");
-      setCashPaid("");
-      setUpiPaid("");
-      localStorage.removeItem('hashi_pos_cart');
-      fetchProducts();
-    }
+    setCart([]);
+    setLastBillId("");
+    setAmountReceived("");
+    setPaymentMethod("Cash");
+    setCashPaid("");
+    setUpiPaid("");
+    localStorage.removeItem('hashi_pos_cart');
+    fetchProducts();
   };
 
-  // --- UNIVERSAL SEARCH LOGIC ---
+  // --- 3. UNIVERSAL SEARCH LOGIC ---
   const filteredProducts = products.filter(p => {
     const search = searchTerm.toLowerCase();
     return (
@@ -78,33 +80,68 @@ function Billing() {
     );
   });
 
+  // --- 4. CART ACTIONS ---
   const addToCart = (p) => {
     const ex = cart.find(i => i.id === p.id);
-    if (ex) setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
-    else setCart([...cart, { ...p, quantity: 1 }]);
+    if (ex) {
+      setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
+    } else {
+      // Add new item with default 0 individual discount
+      setCart([...cart, { ...p, quantity: 1, discount: 0 }]);
+    }
   };
 
-  // Calculations
+  const updateItemDiscount = (id, discValue) => {
+    setCart(cart.map(item => {
+      if (item.id === id) {
+        return { ...item, discount: parseFloat(discValue) || 0 };
+      }
+      return item;
+    }));
+  };
+
+  const updateQty = (id, delta) => {
+    setCart(cart.map(i => (i.id === id ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i)));
+  };
+
+  const removeFromCart = (id) => setCart(cart.filter(i => i.id !== id));
+
+  // --- 5. CALCULATIONS ---
+  const totalItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
   const totalTax = cart.reduce((sum, i) => sum + ((i.price * (i.gst_percentage || 0) / 100) * i.quantity), 0);
   const totalMrpValue = cart.reduce((sum, i) => sum + ((i.mrp || i.price) * i.quantity), 0);
-  const preDiscountTotal = subtotal + totalTax;
-  const currentDiscountAmount = preDiscountTotal * ((parseFloat(discountPercent) || 0) / 100);
-  const grandTotal = Math.max(0, preDiscountTotal - currentDiscountAmount);
-  const totalSavings = (totalMrpValue - subtotal) + currentDiscountAmount;
+  
+  // Total discount is the SUM of all item-wise discounts
+  const totalLineDiscount = cart.reduce((sum, i) => sum + (parseFloat(i.discount) || 0), 0);
+  
+  const grandTotal = Math.max(0, (subtotal + totalTax) - totalLineDiscount);
+  const totalSavings = (totalMrpValue - subtotal) + totalLineDiscount;
   const balanceToReturn = amountReceived ? (parseFloat(amountReceived) - grandTotal) : 0;
 
+  // --- 6. CHECKOUT LOGIC ---
   const checkout = async () => {
     if (cart.length === 0) return;
-    let finalCash = paymentMethod === "Cash" ? grandTotal : (paymentMethod === "UPI" ? 0 : parseFloat(cashPaid) || 0);
-    let finalUpi = paymentMethod === "UPI" ? grandTotal : (paymentMethod === "Cash" ? 0 : parseFloat(upiPaid) || 0);
+
+    // Split Payment Verification
+    let finalCash = 0;
+    let finalUpi = 0;
+    if (paymentMethod === "Cash") finalCash = grandTotal;
+    else if (paymentMethod === "UPI") finalUpi = grandTotal;
+    else {
+      finalCash = parseFloat(cashPaid) || 0;
+      finalUpi = parseFloat(upiPaid) || 0;
+      if (Math.abs((finalCash + finalUpi) - grandTotal) > 1) {
+        return alert("Split amounts must equal Net Total!");
+      }
+    }
 
     const saleData = {
       items: cart,
       total_amount: Number(grandTotal),
       subtotal: Number(subtotal),
       tax: Number(totalTax),
-      discount: Number(currentDiscountAmount),
+      discount: Number(totalLineDiscount),
       savings: Number(totalSavings),
       payment_method: paymentMethod,
       cash_amount: finalCash,
@@ -115,16 +152,16 @@ function Billing() {
       const response = await axios.post(`${API_URL}/sales`, saleData);
       if (response.data.bill_no) {
         setLastBillId(response.data.bill_no);
-        setIsPrinting(true);
+        setIsPrinting(true); // Triggers useEffect to open Laptop Print Preview
       }
-    } catch (e) { alert("Checkout failed"); }
+    } catch (e) { alert("Checkout failed. Is backend running?"); }
   };
 
   return (
     <div className="billing-layout">
+      {/* LEFT AREA: Product Grid */}
       <div className="product-grid-container">
         
-        {/* TOP MANUAL ENTRY BAR */}
         <ManualEntryBar onAddManual={(item) => addToCart(item)} />
 
         <div className="search-container">
@@ -144,31 +181,54 @@ function Billing() {
                 {inCart > 0 && <div className="card-qty-badge">{inCart}</div>}
                 <div className="p-badge">{p.category}</div>
                 <h4>{p.name}</h4>
-                <div className="p-prices"><span className="mrp-striked">₹{p.mrp}</span><span className="sale-price">₹{p.price}</span></div>
-                <div className="p-details"><span>Tax: {p.gst_percentage}%</span><span>Stock: {p.stock}</span></div>
+                <div className="p-prices">
+                  <span className="mrp-striked">₹{p.mrp}</span>
+                  <span className="sale-price">₹{p.price}</span>
+                </div>
+                <div className="p-details">
+                  <span>Tax: {p.gst_percentage}%</span>
+                  <span>Stock: {p.stock}</span>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
 
+      {/* RIGHT AREA: Cart Panel */}
       <div className="cart-panel">
         <div className="cart-header">
-          <h3>Bill Items ({cart.reduce((s,i) => s+i.quantity, 0)})</h3>
-          <button type="button" className="btn-logout" onClick={clearPOS}>New Bill</button>
+          <h3>Bill List ({totalItemsCount} Items)</h3>
+          <button type="button" className="btn-logout" onClick={() => {if(window.confirm("Clear cart?")) setCart([])}}>Clear</button>
         </div>
 
         <div className="cart-items">
           {cart.map(item => (
-            <div key={item.id} className="cart-item">
-              <div className="cart-item-info"><strong>{item.name}</strong></div>
-              <div className="qty-controls">
-                <div className="qty-input-group">
-                  <button type="button" className="qty-btn" onClick={() => setCart(cart.map(i => i.id === item.id ? {...i, quantity: Math.max(1, i.quantity - 1)} : i))}>-</button>
-                  <span className="qty-val">{item.quantity}</span>
-                  <button type="button" className="qty-btn" onClick={() => setCart(cart.map(i => i.id === item.id ? {...i, quantity: i.quantity + 1} : i))}>+</button>
+            <div key={item.id} className="cart-item" style={{flexDirection: 'column', alignItems: 'flex-start'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', width: '100%', marginBottom: '5px'}}>
+                <strong>{item.name}</strong>
+                <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+              </div>
+              
+              <div style={{display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center'}}>
+                <div className="item-disc-box">
+                    <label>Disc ₹</label>
+                    <input 
+                        type="number" 
+                        className="item-disc-input" 
+                        value={item.discount} 
+                        onChange={(e) => updateItemDiscount(item.id, e.target.value)}
+                    />
                 </div>
-                <button type="button" className="remove-btn" onClick={() => setCart(cart.filter(i => i.id !== item.id))}>&times;</button>
+
+                <div className="qty-controls">
+                  <div className="qty-input-group">
+                    <button type="button" className="qty-btn" onClick={() => updateQty(item.id, -1)}>−</button>
+                    <span className="qty-val">{item.quantity}</span>
+                    <button type="button" className="qty-btn" onClick={() => updateQty(item.id, 1)}>+</button>
+                  </div>
+                  <button type="button" className="remove-btn" onClick={() => removeFromCart(item.id)}>&times;</button>
+                </div>
               </div>
             </div>
           ))}
@@ -176,7 +236,8 @@ function Billing() {
 
         <div className="billing-summary">
           <div className="summary-row"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-          <div className="summary-row"><span>Discount (%)</span><input type="number" className="discount-input" value={discountPercent} onChange={(e) => setDiscountPercent(e.target.value)} /></div>
+          <div className="summary-row"><span>GST Tax</span><span>₹{totalTax.toFixed(2)}</span></div>
+          <div className="summary-row"><span>Discount</span><span style={{color: '#dc2626'}}>- ₹{totalLineDiscount.toFixed(2)}</span></div>
           
           <div className="payment-section">
             <div className="payment-grid">
@@ -193,26 +254,32 @@ function Billing() {
           </div>
 
           <div className="balance-calculator">
-            <div className="balance-row"><span>Amount Received:</span><input type="number" className="received-input" value={amountReceived} onChange={(e) => setAmountReceived(e.target.value)} /></div>
+            <div className="balance-row">
+                <span>Received:</span>
+                <input type="number" className="received-input" value={amountReceived} onChange={(e) => setAmountReceived(e.target.value)} />
+            </div>
             <div className={`balance-row return-box ${balanceToReturn > 0 ? 'active' : ''}`}>
               <span>Balance:</span><span className="balance-amount">₹{balanceToReturn > 0 ? balanceToReturn.toFixed(2) : '0.00'}</span>
             </div>
           </div>
 
           <div className="summary-row grand-total"><span>NET TOTAL</span><span>₹{grandTotal.toFixed(2)}</span></div>
+          
           <button type="button" className="pay-button" onClick={checkout} disabled={cart.length === 0 || isPrinting}>
-            {isPrinting ? "Printing..." : "Pay & Print Receipt"}
+            {isPrinting ? "Opening Preview..." : "Pay & Print Receipt (Preview)"}
           </button>
         </div>
       </div>
 
-      {/* GHOST PRINT AREA */}
+      {/* GHOST PRINT AREA: Invisible to user, visible to Printer Driver */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <div ref={printRef}>
           <InvoiceTicket 
-            cart={cart} subtotal={subtotal} tax={totalTax} discount={currentDiscountAmount} 
-            total={grandTotal} savings={totalSavings} billNo={lastBillId} 
-            payMethod={paymentMethod} cash={parseFloat(cashPaid) || 0} upi={parseFloat(upiPaid) || 0}
+            cart={cart} subtotal={subtotal} tax={totalTax} 
+            discount={totalLineDiscount} total={grandTotal} 
+            savings={totalSavings} billNo={lastBillId} 
+            payMethod={paymentMethod} cash={parseFloat(cashPaid) || (paymentMethod === "Cash" ? grandTotal : 0)} 
+            upi={parseFloat(upiPaid) || (paymentMethod === "UPI" ? grandTotal : 0)}
           />
         </div>
       </div>

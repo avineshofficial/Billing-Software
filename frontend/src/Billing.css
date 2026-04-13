@@ -1100,3 +1100,37 @@
   -webkit-appearance: none;
   margin: 0;
 }
+
+.item-disc-box {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff1f0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #ffa39e;
+}
+
+.item-disc-box label {
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: #cf1322;
+}
+
+.item-disc-input {
+  width: 50px;
+  border: none;
+  background: transparent;
+  font-weight: bold;
+  color: #cf1322;
+  text-align: right;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+/* Remove arrows */
+.item-disc-input::-webkit-outer-spin-button,
+.item-disc-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
