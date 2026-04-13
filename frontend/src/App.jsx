@@ -8,6 +8,7 @@ import Reports from './Reports';
 import AdminLogin from './AdminLogin';
 import './App.css';
 import BulkAddProduct from './BulkAddProduct';
+import AuditLogs from './AuditLogs';
 
 function App() {
   // Track if Admin is logged in
@@ -37,6 +38,7 @@ function App() {
           <NavLink to="/reports">Reports</NavLink>
           
           <NavLink to="/admin">Admin</NavLink>
+          <NavLink to="/admin/logs">Edit Logs</NavLink>
           
           {/* Logout only shows if Admin is logged in */}
           {isAuthenticated && (
@@ -61,6 +63,7 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/add" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
           <Route path="/admin/edit/:id" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />
+          <Route path="/admin/logs" element={<ProtectedRoute><AuditLogs /></ProtectedRoute>} />
           <Route path="/admin/bulk-add" element={<ProtectedRoute><BulkAddProduct /></ProtectedRoute>} />
         </Routes>
       </main>

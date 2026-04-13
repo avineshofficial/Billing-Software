@@ -704,3 +704,7 @@ body {
   background: #f8fafc;
   border-radius: 0 0 15px 15px;
 }
+
+.summary-box.audit {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}

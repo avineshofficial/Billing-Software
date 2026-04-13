@@ -9,57 +9,57 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 
-app = FastAPI(title="Hashi Ice Spot API")
+app = FastAPI(title="Hashi Ice Spot Professional POS API")
 
-# --- 1. CONFIGURATION ---
+# --- 1. CONFIGURATION & DIRECTORIES ---
 DATA_DIR = "data"
 UPLOAD_DIR = "static/uploads"
 PRODUCTS_FILE = os.path.join(DATA_DIR, "products.json")
-MAX_FILE_SIZE = 40 * 1024 * 1024  # 40MB
+LOGS_FILE = os.path.join(DATA_DIR, "edit_logs.json")
+MAX_FILE_SIZE = 40 * 1024 * 1024  # 40 Megabytes
 
+# Ensure all necessary folders exist
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# --- 2. CORS - Allow Frontend to talk to Backend ---
+# --- 2. CORS SETUP (FIXES THE RED "BLOCKED BY CORS" ERROR) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, change to specific URL
+    allow_origins=["*"], # Allows both localhost and 127.0.0.1
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Mount static folder (Keep this for existing images if any)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# --- 3. HELPERS ---
-def read_json(path):
-    if not os.path.exists(path): return []
+# --- 3. JSON HELPER FUNCTIONS ---
+
+def read_json(filepath):
+    if not os.path.exists(filepath):
+        return []
     try:
-        with open(path, "r") as f: return json.load(f)
-    except: return []
+        with open(filepath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return []
 
-def write_json(path, data):
-    with open(path, "w") as f: json.dump(data, f, indent=4)
+def write_json(filepath, data):
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
 
-def get_active_sales_file():
-    files = [f for f in os.listdir(DATA_DIR) if f.startswith("sales_v") and f.endswith(".json")]
-    if not files:
-        f = os.path.join(DATA_DIR, "sales_v1.json")
-        if not os.path.exists(f): write_json(f, [])
-        return f
-    files.sort(key=lambda x: int(x.split('_v')[1].split('.json')[0]))
-    return os.path.join(DATA_DIR, files[-1])
+# --- 4. DATA MODELS (FIXES THE 422 UNPROCESSABLE ENTITY ERROR) ---
 
-# --- Update this in main.py ---
 class Product(BaseModel):
     id: Optional[str] = None
     product_code: Optional[str] = "N/A"
-    name: str  # Only name is strictly required to identify the item
+    name: str
     category: Optional[str] = "General"
     price: float = 0.0
     mrp: Optional[float] = 0.0
     gst_percentage: Optional[int] = 0
-    stock: Optional[int] = 0 
+    stock: Optional[int] = 0
     image_url: Optional[str] = ""
 
 class CartItem(BaseModel):
@@ -78,21 +78,13 @@ class SaleRequest(BaseModel):
     discount: float
     savings: float
     bill_no: Optional[int] = None
-    # --- NEW PAYMENT FIELDS ---
-    payment_method: str  # "Cash", "UPI", or "Cash+UPI"
-    cash_amount: float = 0.0
-    upi_amount: float = 0.0
+    payment_method: Optional[str] = "Cash"
+    cash_amount: Optional[float] = 0.0
+    upi_amount: Optional[float] = 0.0
 
-def get_next_bill_number():
-    all_sales = read_all_sales_merged()
-    if not all_sales:
-        return 1
-    # Extract all bill numbers, filter out None, and find max
-    nums = [s.get("bill_no", 0) for s in all_sales]
-    return max(nums) + 1
+# --- 5. LOGIC HELPERS (FILE ROTATION & BILL NUMBERS) ---
 
 def read_all_sales_merged():
-    """Combines all sales_v*.json files into one list."""
     merged_sales = []
     files = [f for f in os.listdir(DATA_DIR) if f.startswith("sales_v") and f.endswith(".json")]
     files.sort(key=lambda x: int(x.split('_v')[1].split('.json')[0]))
@@ -101,28 +93,26 @@ def read_all_sales_merged():
     return merged_sales
 
 def get_next_bill_number():
-    """Finds the highest bill_no in the history and adds 1."""
     all_sales = read_all_sales_merged()
     if not all_sales:
         return 1
-    # Find the maximum bill_no value, defaulting to 0 if not found
     nums = [s.get("bill_no", 0) for s in all_sales if isinstance(s.get("bill_no"), int)]
     return max(nums, default=0) + 1
 
 def get_active_sales_file():
-    """Identifies the latest version of the sales file."""
     files = [f for f in os.listdir(DATA_DIR) if f.startswith("sales_v") and f.endswith(".json")]
     if not files:
         f = os.path.join(DATA_DIR, "sales_v1.json")
         if not os.path.exists(f): write_json(f, [])
         return f
-    # Sort files to find the highest version (e.g., v2 is higher than v1)
     files.sort(key=lambda x: int(x.split('_v')[1].split('.json')[0]))
     return os.path.join(DATA_DIR, files[-1])
-    
-# --- 5. PRODUCT ENDPOINTS ---
+
+# --- 6. PRODUCT ENDPOINTS ---
+
 @app.get("/api/products")
-def get_products(): return read_json(PRODUCTS_FILE)
+def get_products():
+    return read_json(PRODUCTS_FILE)
 
 @app.post("/api/products")
 def add_product(p: Product):
@@ -131,6 +121,15 @@ def add_product(p: Product):
     data.append(p.dict())
     write_json(PRODUCTS_FILE, data)
     return p
+
+@app.post("/api/products/bulk")
+def add_products_bulk(products: List[Product]):
+    data = read_json(PRODUCTS_FILE)
+    for p in products:
+        p.id = str(uuid.uuid4())
+        data.append(p.dict())
+    write_json(PRODUCTS_FILE, data)
+    return {"status": "success"}
 
 @app.put("/api/products/{pid}")
 def update_product(pid: str, up: Product):
@@ -143,132 +142,115 @@ def update_product(pid: str, up: Product):
             return up
     raise HTTPException(status_code=404)
 
-# --- Inside F:\Billing-Software\backend\main.py ---
+@app.delete("/api/products/{pid}")
+def delete_product(pid: str):
+    data = read_json(PRODUCTS_FILE)
+    new_data = [p for p in data if str(p.get("id")) != str(pid)]
+    write_json(PRODUCTS_FILE, new_data)
+    return {"message": "Deleted"}
 
-@app.delete("/api/products/{product_id}") # Must be plural 'products'
-def delete_product(product_id: str):
-    products = read_json(PRODUCTS_FILE)
-    # Convert everything to string to ensure a perfect match
-    new_products = [p for p in products if str(p.get("id")) != str(product_id)]
-    
-    if len(products) == len(new_products):
-        # If lengths are same, nothing was found to delete
-        raise HTTPException(status_code=404, detail="Product ID not found")
-        
-    write_json(PRODUCTS_FILE, new_products)
-    return {"message": "Product deleted successfully"}
+# --- 7. SALES ENDPOINTS ---
 
-# --- 6. SALES ENDPOINTS ---
 @app.post("/api/sales")
 def process_sale(sale: SaleRequest):
-    # --- 1. REDUCE STOCK IN INVENTORY ---
-    products = read_json(PRODUCTS_FILE)
+    # A. Stock reduction
+    prods = read_json(PRODUCTS_FILE)
     for item in sale.items:
-        for p in products:
-            # Match IDs (converting both to string to be safe)
-            if str(p.get("id")) == str(item.id):
-                current_stock = int(p.get("stock", 0))
-                # Subtract quantity (allows negative stock if selling more than owned)
-                p["stock"] = current_stock - int(item.quantity)
-                break
-    # Save the updated products list
-    write_json(PRODUCTS_FILE, products)
+        for p in prods:
+            if str(p["id"]) == str(item.id):
+                p["stock"] = int(p.get("stock", 0)) - int(item.quantity)
+    write_json(PRODUCTS_FILE, prods)
 
-    # --- 2. GENERATE SEQUENTIAL BILL NUMBER (1, 2, 3...) ---
-    # Scans all versioned files to find the highest number currently used
+    # B. Sequential Numbering
     next_no = get_next_bill_number()
 
-    # --- 3. SAVE THE SALE TO THE ACTIVE JSON FILE ---
-    # This finds the latest file (e.g., sales_v1.json or sales_v2.json)
+    # C. Save to active file
     path = get_active_sales_file()
     sales_data = read_json(path)
-    
-    # Create the final record
-    sale_record = sale.dict()
-    sale_record["id"] = str(uuid.uuid4()) # Unique database ID
-    sale_record["timestamp"] = datetime.now().isoformat()
-    sale_record["bill_no"] = next_no # The customer-facing bill number
-    
-    sales_data.append(sale_record)
+    rec = sale.dict()
+    rec["id"] = str(uuid.uuid4())
+    rec["timestamp"] = datetime.now().isoformat()
+    rec["bill_no"] = next_no
+    sales_data.append(rec)
     write_json(path, sales_data)
 
-    # --- 4. CHECK FILE SIZE FOR ROTATION (40MB LIMIT) ---
-    try:
-        if os.path.getsize(path) > MAX_FILE_SIZE:
-            # Extract current version number from filename (e.g., "sales_v1.json" -> 1)
-            current_v = int(path.split('_v')[1].split('.json')[0])
-            new_file_name = os.path.join(DATA_DIR, f"sales_v{current_v + 1}.json")
-            # Create a fresh empty file for the next transaction
-            if not os.path.exists(new_file_name):
-                write_json(new_file_name, [])
-    except Exception as e:
-        print(f"Rotation Error: {e}")
+    # D. 40MB Rotation Check
+    if os.path.getsize(path) > MAX_FILE_SIZE:
+        v = int(path.split('_v')[1].split('.json')[0])
+        write_json(os.path.join(DATA_DIR, f"sales_v{v+1}.json"), [])
 
-    # --- 5. RETURN DATA TO FRONTEND ---
-    # We send back 'bill_no' so the printer can show "INV NO: 5"
-    return {
-        "status": "success", 
-        "id": sale_record["id"], 
-        "bill_no": next_no,
-        "message": "Stock updated and sale recorded."
-    }
+    return {"status": "success", "id": rec["id"], "bill_no": next_no}
 
 @app.get("/api/sales")
-def get_all_sales():
-    merged = []
-    files = [f for f in os.listdir(DATA_DIR) if f.startswith("sales_v")]
-    files.sort(key=lambda x: int(x.split('_v')[1].split('.json')[0]))
-    for f in files: merged.extend(read_json(os.path.join(DATA_DIR, f)))
-    return merged
+def get_sales():
+    return read_all_sales_merged()
 
-# Add this endpoint in your main.py
-@app.post("/api/products/bulk")
-def add_products_bulk(products: List[Product]):
-    existing_products = read_json(PRODUCTS_FILE)
-    new_count = 0
-    for p in products:
-        if p.name.strip(): # Only add if name is not empty
-            p.id = str(uuid.uuid4())
-            # Handle defaults for bulk add
-            if not p.product_code: p.product_code = "N/A"
-            if not p.category: p.category = "General"
-            existing_products.append(p.dict())
-            new_count += 1
-    
-    write_json(PRODUCTS_FILE, existing_products)
-    return {"message": f"Successfully added {new_count} products"}
-
+# --- 8. EDIT BILL LOGIC WITH AUDIT LOGGING ---
 
 @app.put("/api/sales/{sid}")
-def update_sale(sid: str, sale: SaleRequest):
+def update_sale(sid: str, updated_sale: SaleRequest):
     files = [f for f in os.listdir(DATA_DIR) if f.startswith("sales_v")]
     prods = read_json(PRODUCTS_FILE)
+    
     for f in files:
         path = os.path.join(DATA_DIR, f)
         data = read_json(path)
         for i, s in enumerate(data):
             if str(s["id"]) == str(sid):
+                # --- NEW: Create a summary of product names for the log ---
+                item_names = ", ".join([f"{item.quantity}x {item.name}" for item in updated_sale.items])
+                
+                # CREATE AUDIT LOG
+                logs = read_json(LOGS_FILE)
+                logs.append({
+                    "id": str(uuid.uuid4()),
+                    "timestamp": datetime.now().isoformat(),
+                    "sale_id": sid,
+                    "bill_no": s.get("bill_no", 0),
+                    "old_total": s["total_amount"],
+                    "new_total": updated_sale.total_amount,
+                    "details": item_names # Now contains product names like "2x Badam, 1x Pista"
+                })
+                write_json(LOGS_FILE, logs)
+
+                # Revert stock
                 for oi in s["items"]:
                     for p in prods:
                         if str(p["id"]) == str(oi["id"]): p["stock"] += oi["quantity"]
                 
-                if sale.total_amount <= 0: # Auto-delete on zero
+                if updated_sale.total_amount <= 0 or not updated_sale.items:
                     data.pop(i)
                 else:
-                    # Apply new stock
-                    for ni in sale.items:
+                    for ni in updated_sale.items:
                         for p in prods:
-                            if str(p["id"]) == str(ni["id"]): p["stock"] -= ni["quantity"]
-                    new_rec = sale.dict()
+                            if str(p["id"]) == str(ni.id): p["stock"] -= ni.quantity
+                    
+                    new_rec = updated_sale.dict()
                     new_rec["id"] = sid
                     new_rec["timestamp"] = s["timestamp"]
+                    new_rec["bill_no"] = s.get("bill_no", 0)
                     data[i] = new_rec
                 
                 write_json(path, data)
                 write_json(PRODUCTS_FILE, prods)
                 return {"status": "updated"}
+                
     raise HTTPException(status_code=404)
 
+# --- 9. LOG ENDPOINTS ---
+
+@app.get("/api/logs")
+def get_logs():
+    return read_json(LOGS_FILE)
+
+@app.delete("/api/logs/{log_id}")
+def delete_log(log_id: str):
+    data = read_json(LOGS_FILE)
+    new_data = [l for l in data if str(l.get("id")) != str(log_id)]
+    write_json(LOGS_FILE, new_data)
+    return {"status": "deleted"}
+
+# --- 10. RUN SERVER ---
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
