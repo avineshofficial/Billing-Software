@@ -199,7 +199,7 @@ function Billing() {
       <div className="cart-panel">
         <div className="cart-header">
           <h3>Bill List ({totalItemsCount} Items)</h3>
-          <button type="button" className="btn-logout" onClick={clearPOS}>Clear All</button>
+          <button type="button" className="btn-logout" onClick={clearPOS}>New Bill</button>
         </div>
 
         <div className="cart-items">
