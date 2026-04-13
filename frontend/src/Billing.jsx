@@ -21,7 +21,7 @@ function Billing() {
 
   const printRef = useRef();
 
-  // 1. PERSISTENCE: Load cart from memory so switching pages doesn't clear it
+  // 1. PERSISTENCE: Load cart from memory
   const [cart, setCart] = useState(() => {
     const saved = localStorage.getItem('hashi_pos_cart');
     return saved ? JSON.parse(saved) : [];
@@ -41,31 +41,34 @@ function Billing() {
     } catch (e) { console.error("Fetch error", e); }
   };
 
-  // --- 2. PRINT CONFIGURATION ---
+  // --- 2. PRINT CONFIGURATION (FIXED: NO AUTO-CLEAR) ---
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     onAfterPrint: () => {
-      setIsPrinting(false);
-      clearPOS(); // Automatically clear items after printing is finished
+      // We only reset the printing status, NOT the cart
+      setIsPrinting(false); 
     },
   });
 
-  // Trigger print automatically once Backend returns Bill No and React updates
+  // Trigger print automatically once Backend returns Bill No
   useEffect(() => {
     if (isPrinting && lastBillId && printRef.current) {
       handlePrint();
     }
   }, [isPrinting, lastBillId]);
 
+  // Use this button manually when the customer is gone
   const clearPOS = () => {
-    setCart([]);
-    setLastBillId("");
-    setAmountReceived("");
-    setPaymentMethod("Cash");
-    setCashPaid("");
-    setUpiPaid("");
-    localStorage.removeItem('hashi_pos_cart');
-    fetchProducts();
+    if(window.confirm("Clear current list and start new bill?")) {
+        setCart([]);
+        setLastBillId("");
+        setAmountReceived("");
+        setPaymentMethod("Cash");
+        setCashPaid("");
+        setUpiPaid("");
+        localStorage.removeItem('hashi_pos_cart');
+        fetchProducts(); // Refresh stock
+    }
   };
 
   // --- 3. UNIVERSAL SEARCH LOGIC ---
@@ -86,7 +89,6 @@ function Billing() {
     if (ex) {
       setCart(cart.map(i => i.id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      // Add new item with default 0 individual discount
       setCart([...cart, { ...p, quantity: 1, discount: 0 }]);
     }
   };
@@ -112,7 +114,6 @@ function Billing() {
   const totalTax = cart.reduce((sum, i) => sum + ((i.price * (i.gst_percentage || 0) / 100) * i.quantity), 0);
   const totalMrpValue = cart.reduce((sum, i) => sum + ((i.mrp || i.price) * i.quantity), 0);
   
-  // Total discount is the SUM of all item-wise discounts
   const totalLineDiscount = cart.reduce((sum, i) => sum + (parseFloat(i.discount) || 0), 0);
   
   const grandTotal = Math.max(0, (subtotal + totalTax) - totalLineDiscount);
@@ -123,7 +124,6 @@ function Billing() {
   const checkout = async () => {
     if (cart.length === 0) return;
 
-    // Split Payment Verification
     let finalCash = 0;
     let finalUpi = 0;
     if (paymentMethod === "Cash") finalCash = grandTotal;
@@ -152,7 +152,7 @@ function Billing() {
       const response = await axios.post(`${API_URL}/sales`, saleData);
       if (response.data.bill_no) {
         setLastBillId(response.data.bill_no);
-        setIsPrinting(true); // Triggers useEffect to open Laptop Print Preview
+        setIsPrinting(true); 
       }
     } catch (e) { alert("Checkout failed. Is backend running?"); }
   };
@@ -199,7 +199,7 @@ function Billing() {
       <div className="cart-panel">
         <div className="cart-header">
           <h3>Bill List ({totalItemsCount} Items)</h3>
-          <button type="button" className="btn-logout" onClick={() => {if(window.confirm("Clear cart?")) setCart([])}}>Clear</button>
+          <button type="button" className="btn-logout" onClick={clearPOS}>Clear All</button>
         </div>
 
         <div className="cart-items">
@@ -271,7 +271,7 @@ function Billing() {
         </div>
       </div>
 
-      {/* GHOST PRINT AREA: Invisible to user, visible to Printer Driver */}
+      {/* GHOST PRINT AREA */}
       <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
         <div ref={printRef}>
           <InvoiceTicket 
