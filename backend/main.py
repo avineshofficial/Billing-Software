@@ -16,6 +16,7 @@ DATA_DIR = "data"
 UPLOAD_DIR = "static/uploads"
 PRODUCTS_FILE = os.path.join(DATA_DIR, "products.json")
 LOGS_FILE = os.path.join(DATA_DIR, "edit_logs.json")
+CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")
 MAX_FILE_SIZE = 40 * 1024 * 1024  # 40 Megabytes
 
 # Ensure all necessary folders exist
@@ -50,6 +51,11 @@ def write_json(filepath, data):
         json.dump(data, f, indent=4)
 
 # --- 4. DATA MODELS (FIXES THE 422 UNPROCESSABLE ENTITY ERROR) ---
+
+class Customer(BaseModel):
+    name: str
+    phone: str
+    points: int = 0
 
 class Product(BaseModel):
     id: Optional[str] = None
@@ -251,6 +257,30 @@ def delete_log(log_id: str):
     new_data = [l for l in data if str(l.get("id")) != str(log_id)]
     write_json(LOGS_FILE, new_data)
     return {"status": "deleted"}
+
+
+@app.get("/api/customers/{phone}")
+def get_customer(phone: str):
+    customers = read_json(CUSTOMERS_FILE)
+    customer = next((c for c in customers if c["phone"] == phone), None)
+    if not customer:
+        return {"name": "", "phone": phone, "points": 0}
+    return customer
+
+@app.post("/api/customers")
+def update_customer(customer: Customer):
+    customers = read_json(CUSTOMERS_FILE)
+    found = False
+    for c in customers:
+        if c["phone"] == customer.phone:
+            c["name"] = customer.name
+            c["points"] = customer.points
+            found = True
+            break
+    if not found:
+        customers.append(customer.dict())
+    write_json(CUSTOMERS_FILE, customers)
+    return {"status": "success"}
 
 # --- 10. RUN SERVER ---
 if __name__ == "__main__":

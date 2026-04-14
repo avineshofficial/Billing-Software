@@ -1134,3 +1134,151 @@
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* --- CUSTOMER LOYALTY --- */
+.customer-loyalty-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.loyalty-input {
+  padding: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.redeem-btn {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.redeem-btn.active { background: #059669; }
+
+.points-display {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* --- COLLAPSIBLE SUMMARY --- */
+.summary-toggle {
+  background: #e2e8f0;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.arrow { transition: transform 0.3s; }
+.arrow.up { transform: rotate(180deg); }
+
+.billing-summary {
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  padding: 15px;
+  border-radius: 0 0 8px 8px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.item-controls-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 5px;
+}
+
+/* Split Inputs Styling */
+.split-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0;
+  animation: fadeIn 0.3s ease;
+}
+
+.split-inputs input {
+  padding: 8px 10px;
+  border: 1.5px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.split-inputs input:focus {
+  outline: none;
+  background-color: #eff6ff;
+}
+
+.item-controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Ensure individual discount box is neat */
+.item-disc-box {
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  border-radius: 6px;
+  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.item-disc-input {
+  width: 45px;
+  border: none;
+  background: transparent;
+  color: #cf1322;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+/* Styling for the new GST and Stock info on the card */
+.p-card-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+  margin-top: 5px;
+  font-weight: 500;
+}
+
+.low-stock {
+  color: #ef4444;
+  font-weight: bold;
+}
+
+/* Ensure the card has enough height to show all details */
+.product-card {
+  min-height: 180px; 
+}
